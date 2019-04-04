@@ -31,7 +31,9 @@
       (not (clojure.string/starts-with? version-string protocol-version)) (state! {:reply {:version "unknown"}})
       (<= requested-message-size max-message-size) (state! {:update {:msize requested-message-size}
                                                             :reply {:version protocol-version}})
-      :else (error! "requested message size too high."))))
+      :else (state! {:update {:msize max-message-size}
+                     :reply {:version protocol-version
+                             :msize max-message-size}}))))
 
 (defn Tauth
   [frame state]

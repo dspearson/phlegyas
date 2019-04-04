@@ -37,8 +37,12 @@
 
 (defn transform-wname
   [msg-array]
-  (for [msg msg-array]
-    (transform-string msg)))
+  (let [size-buf (byte-array 2)
+        x (wrap-buf size-buf)
+        size (count msg-array)]
+    (.putShort x size)
+    [size-buf (for [elem msg-array]
+                (transform-string elem))]))
 
 (defn transform-nwqids
   [msg]
@@ -95,6 +99,8 @@
 
 (def transformer {:version #'transform-string
                   :name    #'transform-string
+                  :uname   #'transform-string
+                  :aname   #'transform-string
                   :muid    #'transform-string
                   :uid     #'transform-string
                   :gid     #'transform-string

@@ -1,5 +1,6 @@
-(defproject phlegyas "0.0.1"
+(defproject phlegyas "0.0.1-SNAPSHOT"
   :description "phlegyas: an implementation of 9P2000"
+  :url "https://github.com/dspearson/phlegyas"
   :license {:name "ISC Licence"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/core.async "0.4.490"]

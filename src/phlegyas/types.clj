@@ -10,13 +10,13 @@
 ; function lookup namespaces
 (def reader "phlegyas.reader/reader-")
 
-; protocol constants
-(def protocol-version   "9P2000")
-(def notag                0xffff)
-(def nofid            0xffffffff)
-(def stat-keep-number 0xffffffff)
-(def max-message-size 0x7fffffff)
-(def stat-keep-string         "")
+; protocol defaults
+(def protocol-version "9P2000")
+(def notag                   0)
+(def nofid                   0)
+(def stat-keep-number        0)
+(def max-message-size     8216)
+(def stat-keep-string       "")
 
 (def access-mode {:oread  0x00
                   :owrite 0x01
@@ -137,11 +137,13 @@
                     :Rwstat    [:tag]})
 
 (def type-size {:tag    2
+                :oldtag 2
                 :msize  4
                 :size   2
                 :ssize  2
                 :unixfd 4
                 :fid    4
+                :afid   4
                 :newfid 4
                 :nwname 2
                 :nwqid  2
@@ -163,6 +165,7 @@
                 :count  4})
 
 (def type-bufop {:tag     #((memfn putShort x) %1 %2)   ;        tag[2]
+                 :oldtag  #((memfn putShort x) %1 %2)   ;     oldtag[2]
                  :msize   #((memfn   putInt x) %1 %2)   ;      msize[4]
                  :version #((memfn      put x) %1 %2)   ;    version[s]
                  :ename   #((memfn      put x) %1 %2)   ;      ename[s]

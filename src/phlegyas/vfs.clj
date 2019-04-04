@@ -80,10 +80,6 @@
   [fh]
   (-> fh .getName))
 
-(defn sizeof-string
-  [s]
-  (count (.getBytes s "UTF-8")))
-
 (defn stat-size
   [fname uid gid muid]
   (+ 2 4 13 4 4 4 8 2 2 2 2

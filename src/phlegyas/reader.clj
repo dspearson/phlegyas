@@ -9,13 +9,17 @@
   [buf]
   (-> buf .getShort))
 
+(defn reader-oldtag
+  [buf]
+  (-> buf .getShort))
+
 (defn reader-msize
   [buf]
-  (-> buf .getInt int->uint))
+  (-> buf .getInt))
 
 (defn reader-string
   [buf]
-  (let [string-size (-> buf .getShort short->ushort)]
+  (let [string-size (-> buf .getShort)]
     (String. (byte-array (map byte (for [i (range string-size)] (.get buf)))) "UTF-8")))
 
 (defn reader-version
@@ -48,7 +52,7 @@
 
 (defn reader-wname
   [buf]
-  (let [nwname (-> buf .getShort short->ushort)]
+  (let [nwname (-> buf .getShort)]
     (if (= nwname 0)
       []
       (loop [wnames []
@@ -139,5 +143,5 @@
 
 (defn reader-data
   [buf]
-  (let [data-size (-> buf .getInt int->uint)]
+  (let [data-size (-> buf .getInt)]
     (byte-array (map byte (for [i (range data-size)] (.get buf))))))

@@ -4,6 +4,14 @@
                      uint->int ushort->short]])
   (:import java.nio.ByteBuffer))
 
+(defn sizeof-stringbuf
+  [s]
+  (+ 2 (count (.getBytes s "UTF-8"))))
+
+(defn sizeof-string
+  [s]
+  (count (.getBytes s "UTF-8")))
+
 (defn current-seconds
   []
   (-> (java.util.Date.) .getTime (quot 1000)))
