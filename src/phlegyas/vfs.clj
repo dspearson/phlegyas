@@ -11,51 +11,24 @@
   (:import [java.nio.file Files LinkOption]
            [java.nio.file.attribute BasicFileAttributes PosixFilePermission PosixFilePermissions PosixFileAttributes]))
 
+;; an example VFS layer
+
 (defrecord stat
-    [dev qtype qvers qpath mode atime mtime len name uid gid muid children contents permissions parent])
+    [dev qtype qvers qpath mode atime mtime len name size ssize uid gid muid children contents permissions parent])
 
 (defrecord qid
     [qtype qvers qpath])
 
+(defrecord filesystem
+    [files path-pool id root-path])
+
 (defn stat->qid
   [stat]
-  (let [typ (:qtype stat)
-        ver (:qvers stat)
-        path (:qpath stat)]
-    (map->qid {:qtype typ :qvers ver :qpath path})))
+  (map->qid {:qtype (:qtype stat) :qvers (:qvers stat) :qpath (:qpath stat)}))
 
 (defn version
-  [file]
-  (hash (or (:mtime file) ((:handle-version! file)))))
-
-(defrecord filesystem
-    [files path-pool])
-
-(defn path-pool!
-  []
-  (let [channel (async/chan)]
-    (async/thread
-      (loop [i (long 0)]
-        (let [input (async/<!! channel)]
-          (if (= input :destroy)
-            nil
-            (do
-              (async/>!! channel i)
-              (recur (+ i 1)))))))
-    channel))
-
-(defn directory-open!
-  [dir]
-  dir)
-
-(defn directory-clunk!
-  [dir]
-  dir)
-
-(defn get-path
-  [path-pool]
-  (async/>!! path-pool :new)
-  (async/<!! path-pool))
+  [stat]
+  (hash (:mtime stat)))
 
 (defn attrs
   [fh]
@@ -72,7 +45,7 @@
 (defn octal-mode
   [fh]
   (apply + (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
-             ((keyword (str x)) java-permission-mode))))
+             ((keywordize x) java-permission-mode))))
 
 (defn permission-set
   [fh]
@@ -103,12 +76,6 @@
   [fh]
   (-> fh .length))
 
-(defn contents
-  [fh]
-  (if (directory? fh)
-    nil
-    (slurp fh)))
-
 (defn filename
   [fh]
   (-> fh .getName))
@@ -119,7 +86,6 @@
 
 (defn stat-size
   [fname uid gid muid]
-  (log/debug "In stat-size")
   (+ 2 4 13 4 4 4 8 2 2 2 2
      (sizeof-string fname)
      (sizeof-string uid)
@@ -133,7 +99,7 @@
         gid (group fh)
         muid uid
         fname (if (= file "/") "/" (filename fh))
-        mtime (uint->int (modification-time fh))
+        mtime (modification-time fh)
         ftyp (if (directory? fh) (:qtdir qt-mode) (:qtfile qt-mode))
         size (stat-size fname uid gid muid)]
     (map->stat {:qtype ftyp
@@ -144,15 +110,15 @@
                 :dev 0
                 :absolute-path (.getAbsolutePath fh)
                 :mode (bit-or (octal-mode fh) ftyp)
-                :atime (uint->int (access-time fh))
+                :atime (access-time fh)
                 :mtime mtime
                 :len (if (directory? fh) 0 (or length (sizeof fh)))
                 :name fname
                 :uid uid
                 :gid gid
                 :muid muid
-                :size (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
-                :ssize size
+                :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
+                :size size
                 :children #{}
                 :parent (if (nil? parent) path parent)
                 :contents read-fn})))
@@ -184,56 +150,53 @@
         updated-files (assoc (:files fs) path updated-stat)]
     (assoc fs :files updated-files)))
 
-;; TODO
-(defn read-file
-  [f]
-  f)
-
-(defn read-data-field
-  [data]
-  (let [stat (:stat data)]
-    (.getBytes (:data stat) "UTF-8")))
-
-(defn virtual-file
-  [path contents]
-  (let [size (stat-size "synthetic-file" "root" "root" "root")]
+(defn synthetic-file
+  [path filename owner group mode contents read-fn len-fn]
+  (let [size (stat-size filename owner group owner)]
     (map->stat {:qtype (:qtfile qt-mode)
                 :qvers 0
                 :qpath path
-                :permissions {:owner #{:read :execute :write}, :group #{:read :execute}, :others #{:read :execute}}
+                :permissions {:owner #{:read}, :group #{:read}, :others #{:read}}
                 :type 0
                 :dev 0
-                :mode 0444
+                :mode mode
                 :atime 0
                 :mtime 0
-                :len (count (.getBytes contents "UTF-8"))
-                :data contents
-                :name "synthetic-file"
-                :uid "root"
-                :gid "root"
-                :muid "root"
-                :size (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
-                :ssize size
+                :len len-fn
+                :custom-data-field contents
+                :name filename
+                :uid owner
+                :gid group
+                :muid owner
+                :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
+                :size size
                 :children #{}
                 :parent 0
-                :contents #'read-data-field})))
+                :contents read-fn})))
 
 (defn filesystem!
   []
-  (let [fs-name (keyword (gensym "fs"))
-        path-pool (path-pool!)
-        path (get-path path-pool)
-        file-path (get-path path-pool)
-        test-file (virtual-file file-path "hello, world!")
-        root-dir (root-dir path)]
-    [fs-name path (-> (map->filesystem {:files {path root-dir} :path-pool path-pool}) (insert-file! file-path test-file) (update-children! path file-path))]))
+  (let [id (keyword (gensym "fs"))
+        path-pool (atom 0)
+        root-path @path-pool
+        file-path (swap! path-pool inc)
+        another-file-path (swap! path-pool inc)
+        read-fn (fn [x] (.getBytes (:custom-data-field (:stat x)) "UTF-8"))
+        example-file (synthetic-file file-path "synthetic-file" "root" "root" 0444 "hello, world!" read-fn (sizeof-string "hello, world!"))
+        another-example-file (synthetic-file another-file-path "current-time" "root" "root" 0444 ""
+                                             (fn [x] (.getBytes (str (quot (System/currentTimeMillis) 1000)) "UTF-8"))
+                                             (sizeof-string (str (quot (System/currentTimeMillis) 1000))))
+        root-dir (root-dir root-path)]
+    (-> (map->filesystem {:files {root-path root-dir} :path-pool path-pool :id id :root-path root-path})
+        (insert-file! file-path example-file)
+        (insert-file! another-file-path another-example-file)
+        (update-children! root-path file-path)
+        (update-children! root-path another-file-path))))
 
 (defn stat-file
   [fs path]
   (let [f (get (:files fs) path)
         stat (into {:frame :stat} f)]
-    (log/debug "Got file:" f)
-    (log/debug "Stat:" stat)
     (into {:frame :stat} stat)))
 
 (defn stat->data
@@ -310,12 +273,11 @@
 
 (defn fid->role
   [fid conn]
-  (let [fs-name (get (:mapping conn) fid)]
-    (get (:role conn) fs-name)))
+  (get (:role conn) (get (:mapping conn) fid)))
 
 (defn stat-type
   [stat]
-  ((keyword (str (:qtype stat))) qt-mode-r))
+  ((keywordize (:qtype stat)) reverse-qt-mode))
 
 (defn fid->mapping
   [fid conn]

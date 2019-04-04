@@ -8,7 +8,7 @@
                      ubyte->byte byte->ubyte]]))
 
 ; function lookup namespaces
-(def reader       "phlegyas.reader/reader-")
+(def reader "phlegyas.reader/reader-")
 
 ; protocol constants
 (def protocol-version   "9P2000")
@@ -26,11 +26,11 @@
                   :rclose 0x40
                   :oexcl  0x1000})
 
-(def role-access {:oread  #{:read}
-                  :owrite #{:write}
+(def role-access {:oread  #{:read       }
+                  :owrite #{:write      }
                   :ordrw  #{:read :write}
-                  :oexec  #{:execute}
-                  :otrunc #{:write}})
+                  :oexec  #{:execute    }
+                  :otrunc #{:write      }})
 
 (def permission-mode {:ixoth 0001
                       :iwoth 0002
@@ -42,15 +42,15 @@
                       :iwusr 0200
                       :irusr 0400})
 
-(def java-permission-mode {:OWNER_EXECUTE 0100
-                           :OWNER_WRITE 0200
-                           :OWNER_READ 0400
-                           :GROUP_EXECUTE 0010
-                           :GROUP_WRITE 0020
-                           :GROUP_READ 0040
+(def java-permission-mode {:OWNER_EXECUTE  0100
+                           :OWNER_WRITE    0200
+                           :OWNER_READ     0400
+                           :GROUP_EXECUTE  0010
+                           :GROUP_WRITE    0020
+                           :GROUP_READ     0040
                            :OTHERS_EXECUTE 0001
-                           :OTHERS_WRITE 0002
-                           :OTHERS_READ 0004})
+                           :OTHERS_WRITE   0002
+                           :OTHERS_READ    0004})
 
 (def file-mode {:dmdir    0x80000000
                 :dmappend 0x40000000
@@ -58,59 +58,83 @@
                 :dmtmp    0x04000000
                 :dmauth   0x08000000})
 
-(def qt-mode {:qtfile   (byte (ubyte->byte 0x0))
-              :qtdir    (byte (ubyte->byte 0x80))
-              :qtappend (byte (ubyte->byte 0x40))
-              :qtexcl   (byte (ubyte->byte 0x20))
-              :qttmp    (byte (ubyte->byte 0x4))
-              :qtauth   (byte (ubyte->byte 0x8))})
+(def qt-mode {:qtfile   (byte    0)
+              :qtdir    (byte -128)
+              :qtappend (byte   64)
+              :qtexcl   (byte   32)
+              :qttmp    (byte    4)
+              :qtauth   (byte    8)})
 
-(def message-type {:version 100
-                   :auth    102
-                   :attach  104
-                   :error   106
-                   :flush   108
-                   :walk    110
-                   :open    112
-                   :create  114
-                   :read    116
-                   :write   118
-                   :clunk   120
-                   :remove  122
-                   :stat    124
-                   :wstat   126})
+(def message-type {:Tversion 100
+                   :Rversion 101
+                   :Tauth    102
+                   :Rauth    103
+                   :Tattach  104
+                   :Rattach  105
+                   :Rerror   107
+                   :Tflush   108
+                   :Rflush   109
+                   :Twalk    110
+                   :Rwalk    111
+                   :Topen    112
+                   :Ropen    113
+                   :Tcreate  114
+                   :Rcreate  115
+                   :Tread    116
+                   :Rread    117
+                   :Twrite   118
+                   :Rwrite   119
+                   :Tclunk   120
+                   :Rclunk   121
+                   :Tremove  122
+                   :Rremove  123
+                   :Tstat    124
+                   :Rstat    125
+                   :Twstat   126
+                   :Rwstat   127})
 
-(def Tframe {:clunk   '((:tag) (:fid))
-             :remove  '((:tag) (:fid))
-             :stat    '((:tag) (:fid))
-             :open    '((:tag) (:fid) (:iomode))
-             :openfd  '((:tag) (:fid) (:mode))
-             :version `((:tag) (:msize ~max-message-size) (:version ~protocol-version))
-             :auth    '((:tag) (:afid) (:uname) (:aname))
-             :read    '((:tag) (:fid) (:offset) (:count))
-             :create  '((:tag) (:fid) (:name) (:perm) (:mode))
-             :attach  `((:tag) (:fid) (:afid ~nofid) (:uname) (:aname))
-             :write   '((:tag) (:fid) (:offset) (:count) (:data))
-             :walk    '((:tag) (:fid) (:newfid) (:wname))
-             :wstat   '((:tag) (:fid) (:size) (:ssize) (:type) (:dev) (:qtype) (:qvers)
-                        (:qpath) (:mode) (:atime) (:mtime) (:len) (:name) (:uid) (:gid) (:muid))})
+(def frame-layouts {:Tversion  [:tag :msize :version]
+                    :Rversion  [:tag :msize :version]
 
-(def Rframe {:wstat   '((:tag))
-             :clunk   '((:tag))
-             :remove  '((:tag))
-             :auth    '((:tag) (:aqid))
-             :attach  '((:tag) (:qtype) (:qvers) (:qpath))
-             :walk    '((:tag) (:nwqid) (:nwqids))
-             :write   '((:tag) (:count))
-             :error   '((:tag) (:ename))
-             :flush   '((:tag) (:oldtag))
-             :open    '((:tag) (:qtype) (:qvers) (:qpath) (:iounit))
-             :create  '((:tag) (:qid) (:iounit))
-             :read    '((:tag) (:data))
-             :version `((:tag) (:msize) (:version ~protocol-version))
-             :openfd  '((:tag) (:qid) (:iounit) (:unixfd))
-             :stat    '((:tag) (:size) (:ssize) (:type) (:dev) (:qtype) (:qvers)
-                        (:qpath) (:mode) (:atime) (:mtime) (:len) (:name) (:uid) (:gid) (:muid))})
+                    :Tauth     [:tag :afid :uname :aname]
+                    :Rauth     [:tag :aqid]
+
+                    :Rerror    [:tag :ename]
+
+                    :Tflush    [:tag :oldtag]
+                    :Rflush    [:tag]
+
+                    :Tattach   [:tag :fid :afid :uname :aname]
+                    :Rattach   [:tag :qtype :qvers :qpath]
+
+                    :Twalk     [:tag :fid :newfid :wname]
+                    :Rwalk     [:tag :nwqid :nwqids]
+
+                    :Topen     [:tag :fid :iomode]
+                    :Ropen     [:tag :qtype :qvers :qpath :iounit]
+
+                    :Topenfd   [:tag :fid :mode]
+                    :Ropenfd   [:tag :qid :iounit :unixfd]
+
+                    :Tcreate   [:tag :fid :name :perm :mode]
+                    :Rcreate   [:tag :qid :iounit]
+
+                    :Tread     [:tag :fid :offset :count]
+                    :Rread     [:tag :rdata]
+
+                    :Twrite    [:tag :fid :offset :data]
+                    :Rwrite    [:tag :count]
+                    :Tclunk    [:tag :fid]
+                    :Rclunk    [:tag]
+
+                    :Tremove   [:tag :fid]
+                    :Rremove   [:tag]
+
+                    :Tstat     [:tag :fid]
+                    :Rstat     [:tag :ssize :size :type :dev :qtype :qvers :qpath :mode :atime :mtime :len :name :uid :gid :muid]
+
+                    :Twstat    [:tag :fid :ssize :size :type :dev :qtype :qvers :qpath :mode :atime :mtime :len :name :uid :gid :muid]
+                    :Rwstat    [:tag]})
 
 (def type-size {:tag    2
                 :msize  4
@@ -174,12 +198,12 @@
                  :count   #((memfn   putInt x) %1 %2)   ;      count[4]
                  :uid     #((memfn      put x) %1 %2)   ;        uid[s]
                  :gid     #((memfn      put x) %1 %2)   ;        gid[s]
+                 :data    #((memfn      put x) %1 %2)   ; count*data[1]
                  :muid    #((memfn      put x) %1 %2)}) ;       muid[s]
 
-; inverse lookup tables
-(def type-resolvers ((fn [] (into {} (for [[k v] type-bufop] [k (-> (str reader (name k)) symbol resolve)])))))
-(def message-type-r (gen-lookup message-type))
-(def access-mode-r (gen-lookup access-mode))
-(def permission-mode-r (gen-lookup permission-mode))
-(def file-mode-r (gen-lookup file-mode))
-(def qt-mode-r (gen-lookup qt-mode))
+(def type-resolvers          ((fn [] (into {} (for [[k v] type-bufop] [k (-> (str reader (name k)) symbol resolve)])))))
+(def reverse-message-type    (gen-lookup message-type))
+(def reverse-access-mode     (gen-lookup access-mode))
+(def reverse-permission-mode (gen-lookup permission-mode))
+(def reverse-file-mode       (gen-lookup file-mode))
+(def reverse-qt-mode         (gen-lookup qt-mode))

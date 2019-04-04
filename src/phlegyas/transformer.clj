@@ -1,4 +1,4 @@
-(ns phlegyas.transformers
+(ns phlegyas.transformer
   (:require [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
             [taoensso.timbre :as log]
@@ -8,9 +8,25 @@
                      ubyte->byte byte->ubyte
                      ulong->long long->ulong]]))
 
+(declare transformer) ;; required for forward declarations
+
+(defn transform
+  "Takes in data and layout and assembles it into a byte-array.
+  If the data requires a transformer, it looks this up in the transformer table
+  as defined in the transformer namespace, and executes the function on the data.
+  Otherwise, it lokos up the buffer operator in the type-bufop table as defined in
+  the types namespace, and executes this operation on the data to write to the given
+  byte-array by wrapping it first in a ByteBuffer."
+  [data layout]
+  (for [k layout]
+    (if (some? (k transformer))
+      ((k transformer) (k data))
+      (let [buf (byte-array (k type-size))]
+        ((k type-bufop) (wrap-buf buf) (k data))
+        buf))))
+
 (defn transform-string
   [msg]
-  (log/debug "In transform-string, string:" msg)
   (let [string-bytes (.getBytes msg "UTF-8")
         msg-size (count string-bytes)
         size-buf (byte-array 2)
@@ -47,28 +63,16 @@
 
 (defn transform-directory
   [data]
-  (log/debug "In transform-directory")
-  (log/debug data)
-  (let [total-size (apply + (map (fn [x] (:size x)) data))
-        layout '(:ssize :type :dev :qtype :qvers :qpath :mode :atime :mtime :len :name :uid :gid :muid)
+  (let [total-size (apply + (map (fn [x] (:ssize x)) data))
+        layout (subvec (:Rstat frame-layouts) 2)
         size-buf (byte-array 4)
         y (wrap-buf size-buf)]
     (doto y
       (.putInt total-size))
-    (let [output
-          [size-buf
-           (for [entry data]
-             (for [x layout]
-               (if (or (= x :name) (= x :uid) (= x :gid) (= x :muid))
-                 (transform-string (x entry))
-                 (let [buf (byte-array (x type-size))]
-                   ((x type-bufop) (wrap-buf buf) (x entry))
-                   buf))))]]
-      output)))
+    [size-buf (for [entry data] (transform entry layout))]))
 
-(defn transform-data
+(defn transform-rdata
   [msg]
-  (log/debug "In transform-data")
   (let [typ (:type msg)
         data (:data msg)]
     (case typ
@@ -80,12 +84,22 @@
                  (.putInt 0))
                size-buf))))
 
+(defn transform-wdata
+  [msg]
+  (let [data-size (count msg)
+        size-buf (byte-array 4)
+        y (wrap-buf size-buf)]
+    (doto y
+      (.putInt data-size)
+      size-buf)))
+
 (def transformer {:version #'transform-string
-                  :name #'transform-string
-                  :muid #'transform-string
-                  :uid #'transform-string
-                  :gid #'transform-string
-                  :ename #'transform-string
-                  :wname #'transform-wname
-                  :nwqids #'transform-nwqids
-                  :data #'transform-data})
+                  :name    #'transform-string
+                  :muid    #'transform-string
+                  :uid     #'transform-string
+                  :gid     #'transform-string
+                  :ename   #'transform-string
+                  :wname   #'transform-wname
+                  :nwqids  #'transform-nwqids
+                  :rdata   #'transform-rdata
+                  :wdata   #'transform-wdata})

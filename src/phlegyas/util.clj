@@ -27,6 +27,10 @@
   [x]
   (byte-array (mapcat seq x)))
 
-(defn gen-lookup
+(defmacro keywordize
+  [x]
+  `(-> ~x str keyword))
+
+(defmacro gen-lookup
   [table]
-  (into {} (for [[k v] table] [(keyword (str v)) k])))
+  `(into {} (for [[k# v#] ~table] [(keyword (str v#)) k#])))

@@ -15,7 +15,6 @@
 
 (defn reader-string
   [buf]
-  (log/debug "In reader-string.")
   (let [string-size (-> buf .getShort short->ushort)]
     (String. (byte-array (map byte (for [i (range string-size)] (.get buf)))) "UTF-8")))
 
@@ -50,7 +49,6 @@
 (defn reader-wname
   [buf]
   (let [nwname (-> buf .getShort short->ushort)]
-    (log/debug "In reader-wname, nwname:" nwname)
     (if (= nwname 0)
       []
       (loop [wnames []
@@ -138,3 +136,8 @@
 (defn reader-iomode
   [buf]
   (-> buf .get))
+
+(defn reader-data
+  [buf]
+  (let [data-size (-> buf .getInt int->uint)]
+    (byte-array (map byte (for [i (range data-size)] (.get buf))))))
