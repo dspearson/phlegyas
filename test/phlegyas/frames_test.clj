@@ -9,12 +9,14 @@
 (def Tflush-packet [9 0 0 0 108 1 0 0 0])
 (def Tattach-packet [22 0 0 0 104 0 0 1 0 0 0 2 0 0 0 3 0 100 115 112 0 0])
 (def Twalk-packet [29 0 0 0 110 4 0 6 0 0 0 8 0 0 0 3 0 1 0 97 2 0 98 99 3 0 100 101 102])
+(def Topen-packet [12 0 0 0 112 5 0 7 0 0 0 0])
 
 (def Tversion-frame {:frame :Tversion :tag 0 :msize 8216 :version "9P2000"})
 (def Tauth-frame {:frame :Tauth :tag 0 :afid 0 :uname "dsp" :aname "fake-fs"})
 (def Tflush-frame {:frame :Tflush :tag 1 :oldtag 0})
 (def Tattach-frame {:frame :Tattach :tag 0 :fid 1 :afid 2 :uname "dsp" :aname ""})
 (def Twalk-frame {:frame :Twalk :tag 4 :fid 6 :newfid 8 :wname ["a" "bc" "def"]})
+(def Topen-frame {:frame :Topen :tag 5 :fid 7 :iomode (byte 0)})
 
 ;; encoders
 (deftest test-Tversion-packet-encode
@@ -32,6 +34,9 @@
 (deftest test-Twalk-packet-encode
   (is (= Twalk-packet (vec (assemble-packet Twalk-frame)))))
 
+(deftest test-Topen-packet-encode
+  (is (= Topen-packet (vec (assemble-packet Topen-frame)))))
+
 ;; decoders
 (deftest test-Tversion-packet-decode
   (is (= Tversion-frame (disassemble-packet (wrap-buf (byte-array Tversion-packet))))))
@@ -47,3 +52,6 @@
 
 (deftest test-Twalk-packet-decode
   (is (= Twalk-frame (disassemble-packet (wrap-buf (byte-array Twalk-packet))))))
+
+(deftest test-Topen-packet-decode
+  (is (= Topen-frame (disassemble-packet (wrap-buf (byte-array Topen-packet))))))
