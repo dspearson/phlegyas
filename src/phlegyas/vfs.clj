@@ -170,7 +170,7 @@
                 :parent 0
                 :contents read-fn})))
 
-(defn filesystem!
+(defn example-filesystem!
   []
   (let [id (keyword (gensym "fs"))
         path-pool (atom 0)

@@ -113,9 +113,6 @@
                     :Topen     [:tag :fid :iomode]
                     :Ropen     [:tag :qtype :qvers :qpath :iounit]
 
-                    :Topenfd   [:tag :fid :mode]
-                    :Ropenfd   [:tag :qid :iounit :unixfd]
-
                     :Tcreate   [:tag :fid :name :perm :iomode]
                     :Rcreate   [:tag :qtype :qvers :qpath :iounit]
 
@@ -169,7 +166,6 @@
                  :msize   #((memfn   putInt x) %1 %2)   ;      msize[4]
                  :version #((memfn      put x) %1 %2)   ;    version[s]
                  :ename   #((memfn      put x) %1 %2)   ;      ename[s]
-                 :unixfd  #((memfn   putInt x) %1 %2)   ;     unixfd[4]
                  :uname   #((memfn      put x) %1 %2)   ;      uname[s]
                  :aname   #((memfn      put x) %1 %2)   ;      aname[s]
                  :fid     #((memfn   putInt x) %1 %2)   ;        fid[4]

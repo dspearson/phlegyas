@@ -42,7 +42,7 @@
 (defn Tattach
   [frame state]
   (let [fid (:fid frame)
-        fs (filesystem!)
+        fs ((:root-filesystem state))
         fs-map (assoc (:fs-map state) (:id fs) fs)
         fids (set (conj (:fids state) fid))
         mapping (assoc (:mapping state) fid {:filesystem (:id fs) :path (:root-path fs)})

@@ -1,6 +1,7 @@
 (ns phlegyas.core
   (:require [phlegyas.frames :refer :all]
             [phlegyas.state :refer :all]
+            [phlegyas.vfs :refer :all]
             [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
             [clojure.core.async :as async]
@@ -12,14 +13,16 @@
                      uint->int ushort->short
                      ubyte->byte byte->ubyte]]))
 
+(def state-defaults {:root-filesystem #'example-filesystem!})
+
 (defn server!
-  [in out & {:keys [state-machine] :or {state-machine #'mutate-state}}]
+  [in out & {:keys [state-machine initial-state] :or {state-machine #'mutate-state initial-state state-defaults}}]
   (async/thread
     (let [frame-stream (s/stream)
           connection-id (java.util.UUID/randomUUID)]
       (log/info connection-id "connection established.")
       (frame-assembler in frame-stream)
-      (loop [state {:connection-id connection-id}]
+      (loop [state (into initial-state {:connection-id connection-id})]
         (let [frame @(s/take! frame-stream)]
           (log/debug "State:" state)
           (if (nil? frame)
