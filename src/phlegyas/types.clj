@@ -121,6 +121,7 @@
 
                     :Twrite    [:tag :fid :offset :data]
                     :Rwrite    [:tag :count]
+
                     :Tclunk    [:tag :fid]
                     :Rclunk    [:tag]
 
@@ -179,6 +180,9 @@
                  :aqid    #((memfn      put x) %1 %2)   ;       qid[13]
                  :nwqid   #((memfn putShort x) %1 %2)   ;      nwqid[2]
                  :nwqids  #((memfn      put x) %1 %2)   ; nwqid*qid[13]
+                 :data    #((memfn      put x) %1 %2)   ; count*data[1]
+                 :iomode  #((memfn      put x) %1 %2)   ;       mode[1]
+                 :count   #((memfn   putInt x) %1 %2)   ;      count[4]
 
                  ;; stat[n]
                  :type    #((memfn putShort x) %1 %2)   ;       type[2]
@@ -188,16 +192,13 @@
                  :qpath   #((memfn  putLong x) %1 %2)   ;   qid.path[8]
                  :name    #((memfn      put x) %1 %2)   ;       name[s]
                  :mode    #((memfn   putInt x) %1 %2)   ;       mode[4]
-                 :iomode  #((memfn      put x) %1 %2)   ;       mode[1]
                  :atime   #((memfn   putInt x) %1 %2)   ;      atime[4]
                  :mtime   #((memfn   putInt x) %1 %2)   ;      mtime[4]
                  :len     #((memfn  putLong x) %1 %2)   ;     length[8]
                  :size    #((memfn putShort x) %1 %2)   ;       size[2]
                  :ssize   #((memfn putShort x) %1 %2)   ;       size[2]
-                 :count   #((memfn   putInt x) %1 %2)   ;      count[4]
                  :uid     #((memfn      put x) %1 %2)   ;        uid[s]
                  :gid     #((memfn      put x) %1 %2)   ;        gid[s]
-                 :data    #((memfn      put x) %1 %2)   ; count*data[1]
                  :muid    #((memfn      put x) %1 %2)}) ;       muid[s]
 
 (def type-resolvers          ((fn [] (into {} (for [[k v] type-bufop] [k (-> (str reader (name k)) symbol resolve)])))))
