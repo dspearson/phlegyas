@@ -1,43 +1,29 @@
 # Plan 9 Filesystem Protocol, as implemented in Clojure.
 
 ```clj
-[phlegyas "0.0.1-SNAPSHOT"]
+[phlegyas "0.1.1"]
 ```
-
-*WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!*
 
 The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space](https://9fans.github.io/plan9port/man/man9/) project.
 
-I have copied the test resources from [droyo's styx package](https://github.com/droyo/styx/), credit due for making it available.
+This release solely covers byte-array encoding/decoding.
 
-Run `lein test` to verify things work as they should. Currently, 100% of the provided framedumps are successfully handled, hopefully indicating that this is fully up to spec.
+I have included the test resources from [droyo's styx package](https://github.com/droyo/styx/).  Run `lein test` to verify things work as they should. Currently, 100% of the provided framedumps are successfully handled, hopefully indicating that this is up to spec.
 
-"LISP programmers know the value of everything and the cost of nothing." Thus, I have not measured performance of the encode/decode in any serious manner, and the example state machine is a dumb single loop, likely unsuitable for any serious use. However, the principles of how to piece things together should be evident, and the design entirely customisable.
+## Usage
 
-Note the field names in `types.clj`. The `assemble-packet` function will take a map of these and create a byte-array for you. `disassemble-packet` will do the reverse.
+Keys for the frame encoding can be found in the `phlegyas.types` namespace. Check the `frame-layouts` map. There are only a few special cases, namely:
+* `:Twrite` and `:Rread` frames, where the `count[4]` is automatically calculated.
+* `:Twalk`, where `nwname[2]` is automatically calculated and `:wnames` should be a vector of strings.
+* `:Rwalk`, where `nwqid[2]` is automatically calculated and `:nqwids` should be a vector of `{:qid-type qid.type[1] :qid-vers qid.vers[4] :qid-path qid.path[8]}` maps.
+* The `qid.type[1]`, `qid.vers[4]`, `qid.path[8]` fields are named with dashes rather than dots, to make the buffer operator functions easier to resolve.
 
-Development Notes:
+Encoding and decoding, as done via the REPL:
 
-There are still many functions that require implementation, not least the VFS layer. Consider it unstable and subject to major changes.
+```
+phlegyas.core=> (vec (assemble-packet {:frame :Tversion :tag 0 :msize 8192 :version "9P2000"}))
+[19 0 0 0 100 0 0 0 32 0 0 6 0 57 80 50 48 48 48]
 
-I have included a built-in TCP server in order to aid this development, accessible from the phlegyas.core namespace.
-
-Jack in with Spacemacs/CIDER with `,'` and then, at the REPL, `(r)`
-
-This will start a server at localhost on port 10001.
-
-For testing:
-
-`git clone https://github.com/9fans/plan9port.git && cd plan9port && ./INSTALL`
-
-Then run the built 9P FUSE client:
-
-`9pfuse -D 'tcp!localhost!10001' mount-point-goes-here`
-
-This should aid in the development cycle.
-
-The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content.
-
-There's also a few examples of callback / stream usage in the core and state namespace.
-
-When hitting inevitable issues, a simple call to `(r)` again will reset the service back to a clean state, ready to continue on your adventures.
+phlegyas.core=> (disassemble-packet (byte-array [19 0 0 0 100 0 0 0 32 0 0 6 0 57 80 50 48 48 48]))
+{:frame :Tversion, :tag 0, :msize 8192, :version "9P2000"}
+```

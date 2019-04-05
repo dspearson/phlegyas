@@ -1,44 +1,26 @@
 (ns phlegyas.util
-  (:require [primitive-math :as math
-             :refer [int->uint short->ushort
-                     uint->int ushort->short]])
   (:import java.nio.ByteBuffer))
 
-(defn sizeof-stringbuf
-  [s]
-  (+ 2 (count (.getBytes s "UTF-8"))))
-
-(defn sizeof-string
-  [s]
-  (count (.getBytes s "UTF-8")))
-
-(defn current-seconds
-  []
-  (-> (java.util.Date.) .getTime (quot 1000)))
-
-(defn new-tag
-  []
-  (unchecked-short (rand-int 65535)))
-
-(defn lookup
-  [x table]
-  ((keyword (str x)) table))
-
-(defn wrap-buf
-  [buf]
-  (if (nil? buf)
+(defn wrap-buffer
+  "Wraps a byte-array in a Java ByteBuffer, using little-endian
+  byte order as required by the 9P2000 protocol."
+  [byte-array']
+  (if (nil? byte-array')
     (ByteBuffer/wrap (byte-array 0))
-    (let [buffer (ByteBuffer/wrap buf)]
+    (let [buffer (ByteBuffer/wrap byte-array')]
       (.order buffer java.nio.ByteOrder/LITTLE_ENDIAN))))
 
 (defn pack
-  [x]
-  (byte-array (mapcat seq x)))
+  "Pack a sequence into a byte array."
+  [coll]
+  (byte-array (mapcat seq coll)))
 
 (defmacro keywordize
+  "Turn argument into a string, then a keyword."
   [x]
   `(-> ~x str keyword))
 
-(defmacro gen-lookup
+(defmacro reverse-map
+  "Reverses a map, keywordizing the value."
   [table]
-  `(into {} (for [[k# v#] ~table] [(keyword (str v#)) k#])))
+  `(into {} (for [[k# v#] ~table] [(keywordize v#) k#])))
