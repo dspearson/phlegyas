@@ -83,14 +83,9 @@
   [msg]
   (let [typ (:type msg)
         data (:data msg)]
-    (case typ
-      :directory (flatten (transform-directory data))
-      :raw (flatten (transform-raw-data data))
-      :error (let [size-buf (byte-array 4)
-                   y (wrap-buf size-buf)]
-               (doto y
-                 (.putInt 0))
-               size-buf))))
+    (if (= typ :directory)
+      (flatten (transform-directory data)) ;instrumented directory encoder
+      (flatten (transform-raw-data msg)))))
 
 (defn transform-wdata
   [msg]

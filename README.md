@@ -10,7 +10,7 @@ The vast majority of the protocol-level documentation was sourced from the wonde
 
 Development Notes:
 
-There are still many functions that require implementation, not least the VFS layer, and the basic protocol handling.
+There are still many functions that require implementation, not least the VFS layer. Consider it unstable and subject to major changes.
 
 I have included a built-in TCP server in order to aid this development, accessible from the phlegyas.core namespace.
 
@@ -28,4 +28,10 @@ Then run the built 9P FUSE client:
 
 This should aid in the development cycle.
 
+The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content.
+
 When hitting inevitable issues, a simple call to `(r)` again will reset the service back to a clean state, ready to continue on your adventures.
+
+I have copied the test resources from [droyo's styx package](https://github.com/droyo/styx/), credit due for making it available.
+
+Run `lein test` to verify things work as they should. Currently, 100% of the provided framedumps are successfully handled, hopefully indicating that this is fully up to spec.

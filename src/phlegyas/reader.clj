@@ -69,6 +69,10 @@
   [buf]
   (-> buf .get))
 
+(defn reader-perm
+  [buf]
+  (-> buf .getInt int->uint))
+
 (defn reader-offset
   [buf]
   (-> buf .getLong long->ulong))
@@ -163,5 +167,5 @@
              count nwqid]
         (if (= count 0)
           qids
-          (recur (conj qids {:qtype (reader-qtype buf) :qvers (reader-qvers buf) :path (reader-qpath buf)})
+          (recur (conj qids {:qtype (reader-qtype buf) :qvers (reader-qvers buf) :qpath (reader-qpath buf)})
                  (- count 1)))))))

@@ -116,8 +116,8 @@
                     :Topenfd   [:tag :fid :mode]
                     :Ropenfd   [:tag :qid :iounit :unixfd]
 
-                    :Tcreate   [:tag :fid :name :perm :mode]
-                    :Rcreate   [:tag :qid :iounit]
+                    :Tcreate   [:tag :fid :name :perm :iomode]
+                    :Rcreate   [:tag :qtype :qvers :qpath :iounit]
 
                     :Tread     [:tag :fid :offset :count]
                     :Rread     [:tag :data]
