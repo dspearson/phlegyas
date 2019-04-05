@@ -4,6 +4,7 @@
             [phlegyas.frames :refer :all]
             [phlegyas.util :refer :all]
             [manifold.stream :as s]
+            [manifold.deferred :as d]
             [taoensso.timbre :as log]))
 
 ;; an example state machine
@@ -49,6 +50,7 @@
         role (assoc (:user state) (:id fs) {:uid (:uname frame) :gid (:uname frame)})]
     (state! {:update {:fs-map fs-map
                       :fids fids
+                      :root-filesystem-name (:id fs)
                       :mapping mapping
                       :role role}
              :reply (path->qid fs (:root-path fs))})))
@@ -146,8 +148,21 @@
 
 (def state-handlers ((fn [] (into {} (for [[k v] message-type] [k (-> k name symbol resolve)])))))
 
+(defn update-state
+  [state mutation-message]
+  (cond
+    (nil? mutation-message) state
+    (not (d/realized? mutation-message)) (assoc state :mutation-message mutation-message)
+    :else (let [m @mutation-message
+                f (:fn m)
+                data (:data m)]
+            (log/info "Got a mutation message:" m)
+            (dissoc (f {:state state :data data}) :mutation-message))))
+
 (defn mutate-state
   [in out state]
-  (let [updated-state (((:frame in) state-handlers) in state)]
+  (let [mutation-stream (:mutation-stream state)
+        mutation-message (or (:mutation-message state) (if (s/stream? mutation-stream) (s/take! mutation-stream)))
+        updated-state (((:frame in) state-handlers) in (update-state state mutation-message))]
     (s/put! out (assemble-packet (:next-frame updated-state)))
     (dissoc updated-state :next-frame)))

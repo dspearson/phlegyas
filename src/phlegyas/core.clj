@@ -13,7 +13,35 @@
                      uint->int ushort->short
                      ubyte->byte byte->ubyte]]))
 
-(def state-defaults {:root-filesystem #'example-filesystem!})
+(def example-mutation-stream (s/stream))
+(def state-defaults {:root-filesystem #'example-filesystem!
+                     :mutation-stream example-mutation-stream})
+
+(defn example-callback
+  [{:keys [state data]}]
+  (log/info "callback activated!")
+  (log/info "adding a file to the filesystem...")
+  (let [fs ((:root-filesystem-name state) (:fs-map state))
+        file-path (swap! (:path-pool fs) inc)
+        synthetic-file (synthetic-file file-path
+                                       (:filename data)
+                                       "root"
+                                       "root"
+                                       0444
+                                       "callback!"
+                                       (fn [x] (.getBytes (:custom-data-field (:stat x)) "UTF-8"))
+                                       (sizeof-string "callback!"))]
+    (assoc state :fs-map (assoc (:fs-map state)
+                                (:id fs)
+                                (-> fs
+                                    (insert-file! file-path synthetic-file)
+                                    (update-children! (:root-path fs) file-path))))))
+
+(defn add-file
+  [filename]
+  (s/put! example-mutation-stream {:fn example-callback
+                                   :data {:filename filename}}))
+
 
 (defn server!
   [in out & {:keys [state-machine initial-state] :or {state-machine #'mutate-state initial-state state-defaults}}]
