@@ -6,7 +6,15 @@
 
 *WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!*
 
-The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space project](https://9fans.github.io/plan9port/man/man9/).
+The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space](https://9fans.github.io/plan9port/man/man9/) project.
+
+I have copied the test resources from [droyo's styx package](https://github.com/droyo/styx/), credit due for making it available.
+
+Run `lein test` to verify things work as they should. Currently, 100% of the provided framedumps are successfully handled, hopefully indicating that this is fully up to spec.
+
+"LISP programmers know the value of everything and the cost of nothing." Thus, I have not measured performance of the encode/decode in any serious manner, and the example state machine is a dumb single loop, likely unsuitable for any serious use. However, the principles of how to piece things together should be evident, and the design entirely customisable.
+
+Note the field names in `types.clj`. The `assemble-packet` function will take a map of these and create a byte-array for you. `disassemble-packet` will do the reverse.
 
 Development Notes:
 
@@ -30,8 +38,6 @@ This should aid in the development cycle.
 
 The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content.
 
+There's also a few examples of callback / stream usage in the core and state namespace.
+
 When hitting inevitable issues, a simple call to `(r)` again will reset the service back to a clean state, ready to continue on your adventures.
-
-I have copied the test resources from [droyo's styx package](https://github.com/droyo/styx/), credit due for making it available.
-
-Run `lein test` to verify things work as they should. Currently, 100% of the provided framedumps are successfully handled, hopefully indicating that this is fully up to spec.
