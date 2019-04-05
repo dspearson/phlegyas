@@ -25,8 +25,9 @@
   `((keywordize (.get ~x)) '~reverse-message-type))
 
 (defn disassemble-packet
-  [frame]
-  (let [len (flength frame)
+  [packet]
+  (let [frame (wrap-buf packet)
+        len (flength frame)
         typ (ftype frame)
         layout (typ frame-layouts)]
     (into {:frame typ} (for [msg layout] {msg ((msg type-resolvers) frame)}))))
@@ -71,7 +72,7 @@
         (if (< (count x) l)
           x
           (do
-            (s/put! out (-> x (subvec 0 l) byte-array wrap-buf disassemble-packet))
+            (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet))
             (recur (subvec x l))))))))
 
 (defn frame-assembler

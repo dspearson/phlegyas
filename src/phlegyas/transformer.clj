@@ -46,16 +46,20 @@
 
 (defn transform-nwqids
   [msg]
-  (if (empty? msg)
-    (byte-array 0)
-    (for [elem msg]
-      (let [buf (byte-array 13)
-            x (wrap-buf buf)]
-        (doto x
-          (.put (:qtype elem))
-          (.putInt (:qvers elem))
-          (.putLong (:qpath elem)))
-        buf))))
+  (let [size-buf (byte-array 2)
+        y (wrap-buf size-buf)]
+    (doto y
+      (.putShort (count msg)))
+    (if (empty? msg)
+      size-buf
+      [size-buf (for [elem msg]
+           (let [buf (byte-array 13)
+                 x (wrap-buf buf)]
+             (doto x
+               (.put (:qtype elem))
+               (.putInt (:qvers elem))
+               (.putLong (:qpath elem)))
+             buf))])))
 
 (defn transform-raw-data
   [data]

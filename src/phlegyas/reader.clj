@@ -7,19 +7,19 @@
 
 (defn reader-tag
   [buf]
-  (-> buf .getShort))
+  (-> buf .getShort short->ushort))
 
 (defn reader-oldtag
   [buf]
-  (-> buf .getShort))
+  (-> buf .getShort short->ushort))
 
 (defn reader-msize
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-string
   [buf]
-  (let [string-size (-> buf .getShort)]
+  (let [string-size (-> buf .getShort short->ushort)]
     (String. (byte-array (map byte (for [i (range string-size)] (.get buf)))) "UTF-8")))
 
 (defn reader-version
@@ -44,19 +44,19 @@
 
 (defn reader-fid
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-newfid
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-afid
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-wname
   [buf]
-  (let [nwname (-> buf .getShort)]
+  (let [nwname (-> buf .getShort short->ushort)]
     (if (= nwname 0)
       []
       (loop [wnames []
@@ -71,27 +71,27 @@
 
 (defn reader-offset
   [buf]
-  (-> buf .getLong))
+  (-> buf .getLong long->ulong))
 
 (defn reader-count
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-size
   [buf]
-  (-> buf .getShort))
+  (-> buf .getShort short->ushort))
 
 (defn reader-ssize
   [buf]
-  (-> buf .getShort))
+  (-> buf .getShort short->ushort))
 
 (defn reader-type
   [buf]
-  (-> buf .getShort))
+  (-> buf .getShort short->ushort))
 
 (defn reader-dev
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-qtype
   [buf]
@@ -99,31 +99,31 @@
 
 (defn reader-qvers
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-qpath
   [buf]
-  (-> buf .getLong))
+  (-> buf .getLong long->ulong))
 
 (defn reader-mode
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-atime
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-mtime
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-mtime
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-len
   [buf]
-  (-> buf .getLong))
+  (-> buf .getLong long->ulong))
 
 (defn reader-name
   [buf]
@@ -147,16 +147,16 @@
 
 (defn reader-iounit
   [buf]
-  (-> buf .getInt))
+  (-> buf .getInt int->uint))
 
 (defn reader-data
   [buf]
-  (let [data-size (-> buf .getInt)]
+  (let [data-size (-> buf .getInt int->uint)]
     (byte-array (map byte (for [i (range data-size)] (.get buf))))))
 
 (defn reader-nwqids
   [buf]
-  (let [nwqid (-> buf .getShort)]
+  (let [nwqid (-> buf .getShort short->ushort)]
     (if (= nwqid 0)
       []
       (loop [qids []
