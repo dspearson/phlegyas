@@ -75,7 +75,7 @@
       (.putInt total-size))
     [size-buf (for [entry data] (transform entry layout))]))
 
-(defn transform-rdata
+(defn transform-data
   [msg]
   (let [typ (:type msg)
         data (:data msg)]
@@ -107,5 +107,5 @@
                   :ename   #'transform-string
                   :wname   #'transform-wname
                   :nwqids  #'transform-nwqids
-                  :rdata   #'transform-rdata
+                  :data    #'transform-data
                   :wdata   #'transform-wdata})

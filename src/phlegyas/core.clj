@@ -1,6 +1,8 @@
 (ns phlegyas.core
   (:require [phlegyas.frames :refer :all]
             [phlegyas.state :refer :all]
+            [phlegyas.util :refer :all]
+            [phlegyas.types :refer :all]
             [clojure.core.async :as async]
             [manifold.stream :as s]
             [aleph.tcp :as tcp]
@@ -48,3 +50,7 @@
     (do
       (.close srv)
       (go))))
+
+(defn dial
+  [host port]
+  (tcp/client {:host host :port port}))

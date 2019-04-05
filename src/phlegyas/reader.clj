@@ -34,6 +34,10 @@
   [buf]
   (reader-string buf))
 
+(defn reader-ename
+  [buf]
+  (reader-string buf))
+
 (defn reader-qid
   [buf]
   (byte-array (map byte (for [i (range 0 13)] (.get buf)))))
@@ -141,7 +145,23 @@
   [buf]
   (-> buf .get))
 
+(defn reader-iounit
+  [buf]
+  (-> buf .getInt))
+
 (defn reader-data
   [buf]
   (let [data-size (-> buf .getInt)]
     (byte-array (map byte (for [i (range data-size)] (.get buf))))))
+
+(defn reader-nwqids
+  [buf]
+  (let [nwqid (-> buf .getShort)]
+    (if (= nwqid 0)
+      []
+      (loop [qids []
+             count nwqid]
+        (if (= count 0)
+          qids
+          (recur (conj qids {:qtype (reader-qtype buf) :qvers (reader-qvers buf) :path (reader-qpath buf)})
+                 (- count 1)))))))

@@ -1,6 +1,7 @@
 (ns phlegyas.frames-test
   (:use [clojure test])
-  (:require [phlegyas.util :refer :all]
+  (:require [clojure.java.io :as io]
+            [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
             [phlegyas.frames :refer :all]))
 
@@ -11,10 +12,10 @@
 (def Twalk-packet [29 0 0 0 110 4 0 6 0 0 0 8 0 0 0 3 0 1 0 97 2 0 98 99 3 0 100 101 102])
 (def Topen-packet [12 0 0 0 112 5 0 7 0 0 0 0])
 
-(def Tversion-frame {:frame :Tversion :tag 0 :msize 8216 :version "9P2000"})
+(def Tversion-frame {:frame :Tversion :tag notag :msize 8216 :version "9P2000"})
 (def Tauth-frame {:frame :Tauth :tag 0 :afid 0 :uname "dsp" :aname "fake-fs"})
 (def Tflush-frame {:frame :Tflush :tag 1 :oldtag 0})
-(def Tattach-frame {:frame :Tattach :tag 0 :fid 1 :afid 2 :uname "dsp" :aname ""})
+(def Tattach-frame {:frame :Tattach :tag 0 :fid 1 :afid nofid :uname "dsp" :aname ""})
 (def Twalk-frame {:frame :Twalk :tag 4 :fid 6 :newfid 8 :wname ["a" "bc" "def"]})
 (def Topen-frame {:frame :Topen :tag 5 :fid 7 :iomode (byte 0)})
 

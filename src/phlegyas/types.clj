@@ -11,12 +11,12 @@
 (def reader "phlegyas.reader/reader-")
 
 ; protocol defaults
-(def protocol-version "9P2000")
-(def notag                   0)
-(def nofid                   0)
-(def stat-keep-number        0)
-(def max-message-size     8216)
-(def stat-keep-string       "")
+(def protocol-version   "9P2000")
+(def notag                0xffff)
+(def nofid            0xffffffff)
+(def stat-keep-number 0xffffffff)
+(def max-message-size 0x7fffffff)
+(def stat-keep-string         "")
 
 (def access-mode {:oread  0x00
                   :owrite 0x01
@@ -108,7 +108,7 @@
                     :Rattach   [:tag :qtype :qvers :qpath]
 
                     :Twalk     [:tag :fid :newfid :wname]
-                    :Rwalk     [:tag :nwqid :nwqids]
+                    :Rwalk     [:tag :nwqids]
 
                     :Topen     [:tag :fid :iomode]
                     :Ropen     [:tag :qtype :qvers :qpath :iounit]
@@ -120,7 +120,7 @@
                     :Rcreate   [:tag :qid :iounit]
 
                     :Tread     [:tag :fid :offset :count]
-                    :Rread     [:tag :rdata]
+                    :Rread     [:tag :data]
 
                     :Twrite    [:tag :fid :offset :data]
                     :Rwrite    [:tag :count]

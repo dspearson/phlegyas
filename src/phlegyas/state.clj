@@ -110,11 +110,11 @@
         typ (stat-type stat)]
     (case typ
       :qtdir (if (> offset 0)
-               (state! {:reply {:rdata {:type :error}}})
-               (state! {:reply {:rdata {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}}))
+               (state! {:reply {:data {:type :error}}})
+               (state! {:reply {:data {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}}))
       :qtfile (if (>= offset (:len stat))
-                (state! {:reply {:rdata {:type :error}}})
-                (state! {:reply {:rdata {:type :raw :data ((:contents stat) {:stat stat :offset offset :count byte-count})}}})))))
+                (state! {:reply {:data {:type :error}}})
+                (state! {:reply {:data {:type :raw :data ((:contents stat) {:stat stat :offset offset :count byte-count})}}})))))
 
 (defn Twrite
   [frame state]
