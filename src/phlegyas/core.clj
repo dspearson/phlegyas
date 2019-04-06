@@ -3,15 +3,10 @@
             [phlegyas.state :refer :all]
             [phlegyas.vfs :refer :all]
             [phlegyas.util :refer :all]
-            [phlegyas.types :refer :all]
             [clojure.core.async :as async]
             [manifold.stream :as s]
             [aleph.tcp :as tcp]
-            [taoensso.timbre :as log]
-            [primitive-math :as math
-             :refer [int->uint short->ushort
-                     uint->int ushort->short
-                     ubyte->byte byte->ubyte]]))
+            [taoensso.timbre :as log]))
 
 (def example-mutation-stream (s/stream))
 (def state-defaults {:root-filesystem #'example-filesystem!

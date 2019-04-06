@@ -14,17 +14,17 @@
 ;; an example VFS layer
 
 (defrecord stat
-    [dev qtype qvers qpath mode atime mtime len name size ssize uid gid muid children contents permissions parent])
+    [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
 
 (defrecord qid
-    [qtype qvers qpath])
+    [qid-type qid-vers qid-path])
 
 (defrecord filesystem
     [files path-pool id root-path])
 
 (defn stat->qid
   [stat]
-  (map->qid {:qtype (:qtype stat) :qvers (:qvers stat) :qpath (:qpath stat)}))
+  (map->qid {:qid-type (:qid-type stat) :qid-vers (:qid-vers stat) :qid-path (:qid-path stat)}))
 
 (defn version
   [stat]
@@ -96,11 +96,11 @@
         muid uid
         fname (if (= file "/") "/" (filename fh))
         mtime (modification-time fh)
-        ftyp (if (directory? fh) (:qtdir qt-mode) (:qtfile qt-mode))
+        ftyp (if (directory? fh) (:dir qt-mode) (:file qt-mode))
         size (stat-size fname uid gid muid)]
-    (map->stat {:qtype ftyp
-                :qvers (hash mtime)
-                :qpath path
+    (map->stat {:qid-type ftyp
+                :qid-vers (hash mtime)
+                :qid-path path
                 :permissions (permission-set fh)
                 :type 0
                 :dev 0
@@ -108,7 +108,7 @@
                 :mode (bit-or (octal-mode fh) ftyp)
                 :atime (access-time fh)
                 :mtime mtime
-                :len (if (directory? fh) 0 (or length (sizeof fh)))
+                :length (if (directory? fh) 0 (or length (sizeof fh)))
                 :name fname
                 :uid uid
                 :gid gid
@@ -147,18 +147,18 @@
     (assoc fs :files updated-files)))
 
 (defn synthetic-file
-  [path filename owner group mode contents read-fn len-fn]
+  [path filename owner group mode contents read-fn length-fn]
   (let [size (stat-size filename owner group owner)]
-    (map->stat {:qtype (:qtfile qt-mode)
-                :qvers 0
-                :qpath path
+    (map->stat {:qid-type (:file qt-mode)
+                :qid-vers 0
+                :qid-path path
                 :permissions {:owner #{:read}, :group #{:read}, :others #{:read}}
                 :type 0
                 :dev 0
                 :mode mode
                 :atime 0
                 :mtime 0
-                :len len-fn
+                :length length-fn
                 :custom-data-field contents
                 :name filename
                 :uid owner
@@ -273,7 +273,7 @@
 
 (defn stat-type
   [stat]
-  ((keywordize (:qtype stat)) reverse-qt-mode))
+  ((keywordize (:qid-type stat)) reverse-qt-mode))
 
 (defn fid->mapping
   [fid conn]

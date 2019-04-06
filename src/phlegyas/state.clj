@@ -20,7 +20,7 @@
 (defmacro state!
   [data]
   `(let [changed-state# (:update ~data)
-         reply-typ# ((keywordize (+ 1 ((:frame ~'frame) ~'message-type))) ~'reverse-message-type)
+         reply-typ# ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
          next-frame# (assoc (:reply ~data) :frame reply-typ#)]
      (into (into ~'state changed-state#) {:next-frame (into ~'frame next-frame#)})))
 
@@ -63,27 +63,25 @@
   [frame state]
   (let [fid (:fid frame)
         newfid (:newfid frame)
-        wnames (:wname frame)
+        wnames (:wnames frame)
         mapping (get (:mapping state) fid)
         fs-name (:filesystem mapping)
         fs (fs-name (:fs-map state))
         path (:path mapping)]
     (if (= (count wnames) 0)
       (state! {:update (assoc-fid state fid newfid)
-               :reply {:nwqid 0 :nwqids []}})
+               :reply {:nwqids []}})
       (let [wname-paths (walk-path fs path wnames)
             qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
         (if (empty? wname-paths)
           (error! "path cannot be walked")
           (state! {:update {:fids (conj (:fids state) newfid)
                             :mapping (assoc (:mapping state) newfid {:filesystem fs-name :path (last wname-paths)})}
-                   :reply {:nwqid (count wname-paths)
-                           :nwqids qids}}))))))
+                   :reply {:nwqids qids}}))))))
 
 (defn Topen
   [frame state]
-  (let [mode ((keyword (str (:mode frame))) reverse-access-mode)
-        fid (:fid frame)
+  (let [fid (:fid frame)
         mapping (get (:mapping state) fid)
         fs-name (:filesystem mapping)
         fs (fs-name (:fs-map state))
@@ -94,9 +92,9 @@
     (if (not (permission-check stat role :oread))
       (error! "no read permission")
       (state! {:reply {:iounit (iounit!)
-                       :qtype (:qtype qid)
-                       :qvers (:qvers qid)
-                       :qpath (:qpath qid)}}))))
+                       :qid-type (:qid-type qid)
+                       :qid-vers (:qid-vers qid)
+                       :qid-path (:qid-path qid)}}))))
 
 (defn Tcreate
   [frame state]
@@ -111,12 +109,12 @@
         stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
     (case typ
-      :qtdir (if (> offset 0)
-               (state! {:reply {:data nil}})
-               (state! {:reply {:data {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}}))
-      :qtfile (if (>= offset (:len stat))
-                (state! {:reply {:data nil}})
-                (state! {:reply {:data ((:contents stat) {:stat stat :offset offset :count byte-count})}})))))
+      :dir (if (> offset 0)
+             (state! {:reply {:data nil}})
+             (state! {:reply {:data {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}}))
+      :file (if (>= offset (:length stat))
+              (state! {:reply {:data nil}})
+              (state! {:reply {:data ((:contents stat) {:stat stat :offset offset :count byte-count})}})))))
 
 (defn Twrite
   [frame state]
@@ -146,7 +144,7 @@
   [frame state]
   (error! "not implemented"))
 
-(def state-handlers ((fn [] (into {} (for [[k v] message-type] [k (-> k name symbol resolve)])))))
+(def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
 (defn update-state
   [state mutation-message]
