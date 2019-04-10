@@ -3,6 +3,7 @@
             [phlegyas.vfs :refer :all]
             [phlegyas.frames :refer :all]
             [phlegyas.util :refer :all]
+            [clojure.string :as string]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [taoensso.timbre :as log]))
@@ -31,7 +32,7 @@
   (let [requested-message-size (:msize frame)
         version-string (:version frame)]
     (cond
-      (not (clojure.string/starts-with? version-string protocol-version)) (state! {:reply {:version "unknown"}})
+      (not (string/starts-with? version-string protocol-version)) (state! {:reply {:version "unknown"}})
       (<= requested-message-size max-message-size) (state! {:update {:msize requested-message-size}
                                                             :reply {:version protocol-version}})
       :else (state! {:update {:msize max-message-size}

@@ -8,7 +8,8 @@
                  [manifold "0.1.9-alpha3"]
                  [aleph "0.4.6"]
                  [com.taoensso/timbre "4.10.0"]]
-  :plugins [[cider/cider-nrepl "0.21.1"]]
+  :plugins [[cider/cider-nrepl "0.21.1"]
+            [jonase/eastwood "0.3.5"]]
   :main ^:skip-aot phlegyas.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})

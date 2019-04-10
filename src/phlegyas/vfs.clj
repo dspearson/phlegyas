@@ -3,6 +3,8 @@
             [clojure.java.io :as io]
             [phlegyas.types :refer :all]
             [phlegyas.util :refer :all]
+            [clojure.string :as string]
+            [clojure.set :as set]
             [primitive-math :as math
              :refer [int->uint short->ushort
                      uint->int ushort->short
@@ -50,10 +52,10 @@
 (defn permission-set
   [fh]
   (let [permissions (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
-                      (clojure.string/lower-case (str x)))
+                      (string/lower-case (str x)))
         permission-map (for [x ["owner" "group" "others"]]
-                               {(keyword x) (set (map (fn [x] (keyword (second (clojure.string/split x #"_"))))
-                                              (filter #(clojure.string/starts-with? % x) permissions)))})]
+                               {(keyword x) (set (map (fn [x] (keyword (second (string/split x #"_"))))
+                                              (filter #(string/starts-with? % x) permissions)))})]
         (into {} permission-map)))
 
 (defn owner
@@ -88,6 +90,10 @@
      (sizeof-string gid)
      (sizeof-string muid)))
 
+(defn path->stat
+  [fs path]
+  (get (:files fs) path))
+
 (defn file->stat
   [file path & {:keys [read-fn parent length] :or {read-fn #'identity parent nil length nil}}]
   (let [fh (io/file file)
@@ -118,10 +124,6 @@
                 :children #{}
                 :parent (if (nil? parent) path parent)
                 :contents read-fn})))
-
-(defn path->stat
-  [fs path]
-  (get (:files fs) path))
 
 (defn read-dir
   [fs stat]
@@ -211,10 +213,6 @@
   [fs path]
   (:name (get fs path)))
 
-(defn path->stat
-  [fs path]
-  (get (:files fs) path))
-
 (defn path->qid
   [fs path]
   (-> (path->stat fs path) stat->qid))
@@ -252,7 +250,7 @@
 (defn allowed-op?
   [permissions operation]
   (let [access-level (operation role-access)]
-    (clojure.set/subset? access-level permissions)))
+    (set/subset? access-level permissions)))
 
 (defn role-resolve
   [stat role]
