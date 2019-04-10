@@ -153,28 +153,6 @@
 
 (def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
-;; (defn update-state
-;;   [state mutation-message]
-;;   (cond
-;;     (nil? mutation-message) state
-;;     (not (d/realized? mutation-message)) (assoc state :mutation-message mutation-message)
-;;     :else (let [m @mutation-message
-;;                 f (:fn m)
-;;                 data (:data m)]
-;;             (log/info "Got a mutation message:" m)
-;;             (dissoc (f {:state state :data data}) :mutation-message))))
-
-;; (defn mutate-state
-;;   [in out state]
-;;   (let [mutation-stream (:mutation-stream state)
-;;         mutation-message (or (:mutation-message state) (if (s/stream? mutation-stream) (s/take! mutation-stream)))
-;;         updated-state (((:frame in) state-handlers) in (update-state state mutation-message))]
-;;     (s/put! out (assemble-packet (:next-frame updated-state)))
-;;     (dissoc updated-state :next-frame)))
-
-(defn frame-handler
-  [state out-port frame-stream])
-
 (defn state-handler
   [frame state out]
   (s/put! out (((:frame frame) state-handlers) frame state)))
