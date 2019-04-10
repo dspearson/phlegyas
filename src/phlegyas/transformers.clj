@@ -75,7 +75,7 @@
     [size-bytes (for [elem coll] (transform elem layout))]))
 
 (defn transform-raw-data
-  "Takes in a byte-array, and pads it with the size, as required by the
+  "Takes in a byte-array, and prefixes it with the size, as required by the
   `Rread` and `Twrite` messages."
   [data-bytes]
   (let [size-bytes (byte-array 4)

@@ -16,7 +16,7 @@ Run `lein test` to verify things work as they should. Currently, 100% of the pro
 
 Note the field names in `types.clj`. The `assemble-packet` function will take a map of these and create a byte-array for you. `disassemble-packet` will do the reverse.
 
-Development Notes:
+### Development Notes
 
 There are still many functions that require implementation, not least the VFS layer. Consider it unstable and subject to major changes.
 
