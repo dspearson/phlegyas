@@ -10,7 +10,6 @@
             [taoensso.timbre :as log])
   (:gen-class))
 
-
 (defn server!
   [in out]
   (let [state (atom {:root-filesystem #'example-filesystem!})
@@ -47,7 +46,6 @@
 (defn dial
   [host port]
   (tcp/client {:host host :port port}))
-
 
 (defn -main
   [& args]
