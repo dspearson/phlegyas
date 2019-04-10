@@ -11,18 +11,20 @@
 
 (defmacro iounit!
   []
-  `(- (:msize ~'state) 24))
+  `(- (:msize ~'@state) 24))
 
 (defmacro error!
   [ermsg]
-  `(assoc ~'state :next-frame (into ~'frame {:frame :Rerror :ename ~ermsg})))
+  `(into ~'frame {:frame :Rerror :ename ~ermsg}))
 
 (defmacro state!
   [data]
   `(let [changed-state# (:update ~data)
          reply-typ# ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
          next-frame# (assoc (:reply ~data) :frame reply-typ#)]
-     (into (into ~'state changed-state#) {:next-frame (into ~'frame next-frame#)})))
+     (if changed-state#
+       (swap! ~'state (fn [x# y#] (into x# y#)) changed-state#))
+     (into ~'frame next-frame#)))
 
 (defn Tversion
   [frame state]
@@ -42,12 +44,13 @@
 
 (defn Tattach
   [frame state]
-  (let [fid (:fid frame)
-        fs ((:root-filesystem state))
-        fs-map (assoc (:fs-map state) (:id fs) fs)
-        fids (set (conj (:fids state) fid))
-        mapping (assoc (:mapping state) fid {:filesystem (:id fs) :path (:root-path fs)})
-        role (assoc (:user state) (:id fs) {:uid (:uname frame) :gid (:uname frame)})]
+  (let [current-state @state
+        fid (:fid frame)
+        fs ((:root-filesystem current-state))
+        fs-map (assoc (:fs-map current-state) (:id fs) fs)
+        fids (set (conj (:fids current-state) fid))
+        mapping (assoc (:mapping current-state) fid {:filesystem (:id fs) :path (:root-path fs)})
+        role (assoc (:user current-state) (:id fs) {:uid (:uname frame) :gid (:uname frame)})]
     (state! {:update {:fs-map fs-map
                       :fids fids
                       :root-filesystem-name (:id fs)
@@ -61,32 +64,34 @@
 
 (defn Twalk
   [frame state]
-  (let [fid (:fid frame)
+  (let [current-state @state
+        fid (:fid frame)
         newfid (:newfid frame)
         wnames (:wnames frame)
-        mapping (get (:mapping state) fid)
+        mapping (get (:mapping current-state) fid)
         fs-name (:filesystem mapping)
-        fs (fs-name (:fs-map state))
+        fs (fs-name (:fs-map current-state))
         path (:path mapping)]
     (if (= (count wnames) 0)
-      (state! {:update (assoc-fid state fid newfid)
+      (state! {:update (assoc-fid current-state fid newfid)
                :reply {:nwqids []}})
       (let [wname-paths (walk-path fs path wnames)
             qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
         (if (empty? wname-paths)
           (error! "path cannot be walked")
-          (state! {:update {:fids (conj (:fids state) newfid)
-                            :mapping (assoc (:mapping state) newfid {:filesystem fs-name :path (last wname-paths)})}
+          (state! {:update {:fids (conj (:fids current-state) newfid)
+                            :mapping (assoc (:mapping current-state) newfid {:filesystem fs-name :path (last wname-paths)})}
                    :reply {:nwqids qids}}))))))
 
 (defn Topen
   [frame state]
-  (let [fid (:fid frame)
-        mapping (get (:mapping state) fid)
+  (let [current-state @state
+        fid (:fid frame)
+        mapping (get (:mapping current-state) fid)
         fs-name (:filesystem mapping)
-        fs (fs-name (:fs-map state))
+        fs (fs-name (:fs-map current-state))
         path (:path mapping)
-        role (fid->role fid state)
+        role (fid->role fid current-state)
         stat (path->stat fs path)
         qid (stat->qid stat)]
     (if (not (permission-check stat role :oread))
@@ -104,8 +109,8 @@
   [frame state]
   (let [offset (:offset frame)
         byte-count (:count frame)
-        mapping (fid->mapping (:fid frame) state)
-        fs ((:filesystem mapping) (:fs-map state))
+        mapping (fid->mapping (:fid frame) @state)
+        fs ((:filesystem mapping) (:fs-map @state))
         stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
     (case typ
@@ -122,9 +127,10 @@
 
 (defn Tclunk
   [frame state]
-  (let [fid (:fid frame)]
-    (state! {:update {:fids (disj (:fids state) fid)
-                      :mapping (dissoc (:mapping state) fid)}})))
+  (let [current-state @state
+        fid (:fid frame)]
+    (state! {:update {:fids (disj (:fids current-state) fid)
+                      :mapping (dissoc (:mapping current-state) fid)}})))
 
 (defn Tremove
   [frame state]
@@ -132,10 +138,11 @@
 
 (defn Tstat
   [frame state]
-  (let [fid (:fid frame)
-        mapping (get (:mapping state) fid)
+  (let [current-state @state
+        fid (:fid frame)
+        mapping (get (:mapping current-state) fid)
         fs-name (:filesystem mapping)
-        fs (fs-name (:fs-map state))
+        fs (fs-name (:fs-map current-state))
         path (:path mapping)
         stat (stat-file fs path)]
     (state! {:reply stat})))
@@ -146,21 +153,43 @@
 
 (def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
-(defn update-state
-  [state mutation-message]
-  (cond
-    (nil? mutation-message) state
-    (not (d/realized? mutation-message)) (assoc state :mutation-message mutation-message)
-    :else (let [m @mutation-message
-                f (:fn m)
-                data (:data m)]
-            (log/info "Got a mutation message:" m)
-            (dissoc (f {:state state :data data}) :mutation-message))))
+;; (defn update-state
+;;   [state mutation-message]
+;;   (cond
+;;     (nil? mutation-message) state
+;;     (not (d/realized? mutation-message)) (assoc state :mutation-message mutation-message)
+;;     :else (let [m @mutation-message
+;;                 f (:fn m)
+;;                 data (:data m)]
+;;             (log/info "Got a mutation message:" m)
+;;             (dissoc (f {:state state :data data}) :mutation-message))))
 
-(defn mutate-state
-  [in out state]
-  (let [mutation-stream (:mutation-stream state)
-        mutation-message (or (:mutation-message state) (if (s/stream? mutation-stream) (s/take! mutation-stream)))
-        updated-state (((:frame in) state-handlers) in (update-state state mutation-message))]
-    (s/put! out (assemble-packet (:next-frame updated-state)))
-    (dissoc updated-state :next-frame)))
+;; (defn mutate-state
+;;   [in out state]
+;;   (let [mutation-stream (:mutation-stream state)
+;;         mutation-message (or (:mutation-message state) (if (s/stream? mutation-stream) (s/take! mutation-stream)))
+;;         updated-state (((:frame in) state-handlers) in (update-state state mutation-message))]
+;;     (s/put! out (assemble-packet (:next-frame updated-state)))
+;;     (dissoc updated-state :next-frame)))
+
+(defn frame-handler
+  [state out-port frame-stream])
+
+(defn state-handler
+  [frame state out]
+  (s/put! out (((:frame frame) state-handlers) frame state)))
+
+(defn consume-with-state [in out state f]
+  (d/loop []
+    (d/chain (s/take! in ::drained)
+             ;; if we got a message, run it through `f`
+             (fn [frame]
+               (if (identical? ::drained frame)
+                 ::drained
+                 (f frame state out)))
+
+             ;; wait for the result from `f` to be realized, and
+             ;; recur, unless the stream is already drained
+             (fn [result]
+               (when-not (identical? ::drained result)
+                 (d/recur))))))

@@ -3,6 +3,8 @@
             [phlegyas.types :refer :all]
             [phlegyas.transformers :refer :all]
             [clojure.core.async :as async]
+            [manifold.deferred :as d]
+            [taoensso.timbre :as log]
             [manifold.stream :as s]))
 
 (defmacro frame-length
