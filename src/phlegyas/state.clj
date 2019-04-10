@@ -116,7 +116,7 @@
     (case typ
       :dir (if (> offset 0)
              (state! {:reply {:data nil}})
-             (state! {:reply {:data {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}}))
+             (state! {:reply {:data {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}})) ;; FIXME: see [1]
       :file (if (>= offset (:length stat))
               (state! {:reply {:data nil}})
               (state! {:reply {:data ((:contents stat) {:stat stat :offset offset :count byte-count})}})))))
@@ -171,3 +171,10 @@
              (fn [result]
                (when-not (identical? ::drained result)
                  (d/recur))))))
+
+;; [1] Currently, if the directory size is larger than the msize, this will not work.
+;;     Seeking in a directory is not permitted, except to the beginning, but if the
+;;     msize is smaller than the data, an offset at the last position of the file
+;;     should be honoured, and buffers should only be allocated up to the maximum msize.
+;;     This perhaps can be handled by some open fid state which shows the current
+;;     position in the file.
