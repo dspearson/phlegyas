@@ -4,6 +4,7 @@
             [phlegyas.frames :refer :all]
             [phlegyas.util :refer :all]
             [clojure.string :as string]
+            [clojure.core.async :as async]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [taoensso.timbre :as log]))
@@ -157,6 +158,36 @@
 (defn state-handler
   [frame state out]
   (s/put! out (((:frame frame) state-handlers) frame state)))
+
+(defn ->state
+  "Send state change to the state thread via the stream, and then block waiting for the state
+  change to take place."
+  [mutation stream]
+  (let [reply (d/deferred)]
+    (s/put! stream [mutation reply])
+    @reply))
+
+(defn state-machine
+  "Start a thread which will hold the state for the connection. This takes in a stream which
+  will be operated on by `->state`, and the state atom. This design allows for blocking by the
+  sending thread to verify that the state change actually occurred. State changes will happen
+  in their own thread, to avoid blocking. Messages sent in to the stream shall be a vector.
+  The first position is typically a map, the second is a deferred which is delivered after the
+  change is made, and the third position is optionally a mutation function which can be passed
+  in when the change is more involved."
+  [in state]
+  (async/thread
+    (loop []
+      (let [[mut done? optional-fn] @(s/take! in)]
+        (if (nil? mut)
+          nil
+          (do
+            (async/go
+              (if optional-fn
+                (optional-fn mut state)
+                (swap! state (fn [x y] (into x y)) mut))
+              (d/success! done? true))
+            (recur)))))))
 
 (defn consume-with-state [in out state f]
   (d/loop []
