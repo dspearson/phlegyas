@@ -1,7 +1,14 @@
 (ns phlegyas.types
   (:require [clojure.set :refer :all]
             [phlegyas.buffers :refer :all]
-            [phlegyas.util :refer :all]))
+            [phlegyas.util :refer :all]
+            [primitive-math :as math
+             :refer [ubyte->byte
+                     uint->int
+                     ushort->short
+                     ulong->long]]))
+
+(set! *warn-on-reflection* true)
 
 ; for dynamic lookup and resolution of buffer reader functions.
 (def buffer-function-prefix "phlegyas.buffers/get-")
@@ -153,43 +160,43 @@
                 :length    8
                 :count     4})
 
-(def buffer-operator {:tag      #((memfn putShort x) %1 %2) ;         tag[2]
-                      :oldtag   #((memfn putShort x) %1 %2) ;      oldtag[2]
-                      :msize    #((memfn   putInt x) %1 %2) ;       msize[4]
-                      :fid      #((memfn   putInt x) %1 %2) ;         fid[4]
-                      :afid     #((memfn   putInt x) %1 %2) ;        afid[4]
-                      :newfid   #((memfn   putInt x) %1 %2) ;      newfid[4]
-                      :perm     #((memfn   putInt x) %1 %2) ;        perm[4]
-                      :iounit   #((memfn   putInt x) %1 %2) ;      iounit[4]
-                      :offset   #((memfn  putLong x) %1 %2) ;      offset[8]
-                      :iomode   #((memfn      put x) %1 %2) ;        mode[1]
-                      :count    #((memfn   putInt x) %1 %2) ;       count[4]
+(def buffer-operator {:tag      #((memfn ^java.nio.ByteBuffer putShort ^Short   x) %1 (ushort->short %2)) ;         tag[2]
+                      :oldtag   #((memfn ^java.nio.ByteBuffer putShort ^Short   x) %1 (ushort->short %2)) ;      oldtag[2]
+                      :msize    #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;       msize[4]
+                      :fid      #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;         fid[4]
+                      :afid     #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;        afid[4]
+                      :newfid   #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;      newfid[4]
+                      :perm     #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;        perm[4]
+                      :iounit   #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;      iounit[4]
+                      :offset   #((memfn ^java.nio.ByteBuffer  putLong ^Long    x) %1 (ulong->long   %2)) ;      offset[8]
+                      :iomode   #((memfn ^java.nio.ByteBuffer      put ^Byte    x) %1 (ubyte->byte   %2)) ;        mode[1]
+                      :count    #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;       count[4]
 
                       ;; stat[n]
-                      :type     #((memfn putShort x) %1 %2) ;        type[2]
-                      :dev      #((memfn   putInt x) %1 %2) ;         dev[4]
-                      :qid-type #((memfn      put x) %1 %2) ;    qid.type[1]
-                      :qid-vers #((memfn   putInt x) %1 %2) ;    qid.vers[4]
-                      :qid-path #((memfn  putLong x) %1 %2) ;    qid.path[8]
-                      :name     #((memfn      put x) %1 %2) ;        name[s]
-                      :mode     #((memfn   putInt x) %1 %2) ;        mode[4]
-                      :atime    #((memfn   putInt x) %1 %2) ;       atime[4]
-                      :mtime    #((memfn   putInt x) %1 %2) ;       mtime[4]
-                      :length   #((memfn  putLong x) %1 %2) ;      length[8]
-                      :size     #((memfn putShort x) %1 %2) ;        size[2]
-                      :ssize    #((memfn putShort x) %1 %2) ;        size[2]
+                      :type     #((memfn ^java.nio.ByteBuffer putShort ^Short   x) %1 (ushort->short %2)) ;        type[2]
+                      :dev      #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;         dev[4]
+                      :qid-type #((memfn ^java.nio.ByteBuffer      put ^Byte    x) %1 (ubyte->byte   %2)) ;    qid.type[1]
+                      :qid-vers #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;    qid.vers[4]
+                      :qid-path #((memfn ^java.nio.ByteBuffer  putLong ^Long    x) %1 (ulong->long   %2)) ;    qid.path[8]
+                      :name     #((memfn ^java.nio.ByteBuffer      put ^Byte    x) %1 (ubyte->byte   %2)) ;        name[s]
+                      :mode     #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;        mode[4]
+                      :atime    #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;       atime[4]
+                      :mtime    #((memfn ^java.nio.ByteBuffer   putInt ^Integer x) %1 (uint->int     %2)) ;       mtime[4]
+                      :length   #((memfn ^java.nio.ByteBuffer  putLong ^Long    x) %1 (ulong->long   %2)) ;      length[8]
+                      :size     #((memfn ^java.nio.ByteBuffer putShort ^Short   x) %1 (ushort->short %2)) ;        size[2]
+                      :ssize    #((memfn ^java.nio.ByteBuffer putShort ^Short   x) %1 (ushort->short %2)) ;        size[2]
 
                       ;; these fields have transformers
-                      :version  nil                         ;     version[s]
-                      :ename    nil                         ;       ename[s]
-                      :uname    nil                         ;       uname[s]
-                      :aname    nil                         ;       aname[s]
-                      :wnames   nil                         ; count*wname[s]
-                      :data     nil                         ;  count*data[n]
-                      :nwqids   nil                         ;  nwqid*qid[13]
-                      :uid      nil                         ;         uid[s]
-                      :gid      nil                         ;         gid[s]
-                      :muid     nil})
+                      :version  nil                                                                       ;     version[s]
+                      :ename    nil                                                                       ;       ename[s]
+                      :uname    nil                                                                       ;       uname[s]
+                      :aname    nil                                                                       ;       aname[s]
+                      :wnames   nil                                                                       ; count*wname[s]
+                      :data     nil                                                                       ;  count*data[n]
+                      :nwqids   nil                                                                       ;  nwqid*qid[13]
+                      :uid      nil                                                                       ;         uid[s]
+                      :gid      nil                                                                       ;         gid[s]
+                      :muid     nil})                                                                     ;        muid[s]
 
 ;; we iterate over the keys in the buffer-operator map, and resolve functions for reading them.
 (def buffer-functions        ((fn [] (into {} (for [[k v] buffer-operator] [k (-> (str buffer-function-prefix (name k)) symbol resolve)])))))

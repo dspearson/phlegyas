@@ -4,10 +4,10 @@
 (defn wrap-buffer
   "Wraps a byte-array in a Java ByteBuffer, using little-endian
   byte order as required by the 9P2000 protocol."
-  [byte-array']
-  (if (nil? byte-array')
+  [x]
+  (if (nil? x)
     (ByteBuffer/wrap (byte-array 0))
-    (let [buffer (ByteBuffer/wrap byte-array')]
+    (let [buffer (ByteBuffer/wrap x)]
       (.order buffer java.nio.ByteOrder/LITTLE_ENDIAN))))
 
 (defn pack
@@ -28,4 +28,4 @@
 (defn sizeof-string
   "Count the number of bytes in a string."
   [s]
-  (count (.getBytes s "UTF-8")))
+  (count (^Bytes .getBytes ^String s "UTF-8")))
