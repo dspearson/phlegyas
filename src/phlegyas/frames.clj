@@ -1,27 +1,32 @@
 (ns phlegyas.frames
   (:require [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
-            [phlegyas.transformers :refer :all]))
+            [phlegyas.transformers :refer :all]
+            [primitive-math :as math
+             :refer [ubyte->byte
+                     uint->int
+                     ushort->short
+                     ulong->long]]))
 
 (defmacro frame-length
   "Check reported frame length."
   [buffer]
-  `(if (< (.remaining ~buffer) 4)
+  `(if (< (^Integer .remaining ^java.nio.ByteBuffer ~buffer) 4)
      0
-     (.getInt ~buffer)))
+     (^Integer .getInt ^java.nio.ByteBuffer ~buffer)))
 
 (defmacro frame-type
-  "Look up frame type in the reverse lookup table `reverse-message-type`,
+  "Look up frame type in the reverse lookup table `reverse-frame-byte`,
   defined in the `phlegyas.types` namespace, and `keywordizes` it for us."
   [buffer]
-  `((keywordize (.get ~buffer)) '~reverse-frame-byte))
+  `((keywordize (^Byte .get ^java.nio.ByteBuffer ~buffer)) '~reverse-frame-byte))
 
 (defn disassemble-packet
   "Takes in a byte-array, and attempts to decode it. Produces a map, matching that
   of the message type found in the `phlegyas.types` namespace."
   [packet]
-  (let [frame (wrap-buffer packet)
-        len (frame-length frame)
+  (let [^java.nio.ByteBuffer frame (wrap-buffer packet)
+        len (uint->int (frame-length frame))
         frame-typ (frame-type frame)
         layout (get frame-layouts frame-typ)]
     (into {:frame frame-typ} (for [typ layout] {typ ((get buffer-functions typ) frame)}))))
@@ -33,14 +38,14 @@
   it as `buffer`, and using ByteBuffer operations to populate `frame-bytes`, finally
   returning the assembled output."
   [frame ftype]
-  (let [frame-size (+ 5 (count frame))
+  (let [frame-size (uint->int (+ 5 (count frame)))
         type-bytes (get frame-byte ftype)
         frame-bytes (byte-array frame-size)
-        buffer (wrap-buffer frame-bytes)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer frame-bytes)]
     (doto buffer
-      (.putInt frame-size)
+      (^Integer .putInt frame-size)
       (.put (byte type-bytes))
-      (.put frame))
+      (.put ^bytes frame))
     frame-bytes))
 
 (defn assemble-packet

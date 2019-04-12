@@ -1,6 +1,11 @@
 (ns phlegyas.transformers
   (:require [phlegyas.util :refer :all]
-            [phlegyas.types :refer :all]))
+            [phlegyas.types :refer :all]
+            [primitive-math :as math
+             :refer [ubyte->byte
+                     uint->int
+                     ushort->short
+                     ulong->long]]))
 
 (declare transformer) ;; required for forward declarations
 
@@ -16,7 +21,7 @@
   (for [typ layout]
     (if (some? (get transformer typ))
       ((get transformer typ) (get frame typ))
-      (let [buffer (byte-array (typ type-size))]
+      (let [^java.nio.ByteBuffer buffer (byte-array (typ type-size))]
         ((get buffer-operator typ) (wrap-buffer buffer) (get frame typ))
         buffer))))
 
@@ -24,12 +29,12 @@
   "Encodes a string. Strings in 9P2000 are UTF-8, with a short field of
   their length prefixing them."
   [s]
-  (let [string-bytes (.getBytes s "UTF-8")
-        string-size (count string-bytes)
+  (let [string-bytes (^Bytes .getBytes ^String s "UTF-8")
+        string-size (ushort->short (count string-bytes))
         size-bytes (byte-array 2)
-        buffer (wrap-buffer size-bytes)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer size-bytes)]
     (doto buffer
-      (.putShort string-size))
+      (^Short .putShort string-size))
     [size-bytes string-bytes]))
 
 (defn transform-wnames
@@ -37,9 +42,9 @@
   them, prefixing with a short count field as required."
   [coll]
   (let [size-array (byte-array 2)
-        buffer (wrap-buffer size-array)
-        size (count coll)]
-    (.putShort buffer size)
+        ^java.nio.ByteBuffer buffer (wrap-buffer size-array)
+        size (ushort->short (count coll))]
+    (^Short .putShort buffer size)
     [size-array (for [elem coll] (transform-string elem))]))
 
 (defn transform-nwqids
@@ -47,40 +52,40 @@
   count field, and encodes."
   [coll]
   (let [count-bytes (byte-array 2)
-        buffer (wrap-buffer count-bytes)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer count-bytes)]
     (doto buffer
-      (.putShort (count coll)))
+      (^Short .putShort (ushort->short (count coll))))
     (if (empty? coll)
       count-bytes
       [count-bytes (for [elem coll]
                       (let [qid-bytes (byte-array 13)
-                            buffer (wrap-buffer qid-bytes)]
+                            ^java.nio.ByteBuffer buffer (wrap-buffer qid-bytes)]
                         (doto buffer
-                          (.put (:qid-type elem))
-                          (.putInt (:qid-vers elem))
-                          (.putLong (:qid-path elem)))
+                          (^Byte .put (ubyte->byte (:qid-type elem)))
+                          (^Integer .putInt (uint->int (:qid-vers elem)))
+                          (^Long .putLong (ulong->long (:qid-path elem))))
                         qid-bytes))])))
 
 (defn transform-directory
   "Instrumented directory encoder. Takes in a vector of stat structures,
   and produces a byte collection suitable for use in `Rread`."
   [coll]
-  (let [calculated-size (apply + (map (fn [x] (:ssize x)) coll))
+  (let [calculated-size (uint->int (apply + (map (fn [x] (:ssize x)) coll)))
         layout (subvec (:Rstat frame-layouts) 2)
         size-bytes (byte-array 4)
-        buffer (wrap-buffer size-bytes)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer size-bytes)]
     (doto buffer
-      (.putInt calculated-size))
+      (^Integer .putInt calculated-size))
     [size-bytes (for [elem coll] (transform elem layout))]))
 
 (defn transform-raw-data
-  "Takes in a byte-array, and pads it with the size, as required by the
+  "Takes in a byte-array, and prefixes it with the size, as required by the
   `Rread` and `Twrite` messages."
   [data-bytes]
   (let [size-bytes (byte-array 4)
-        buffer (wrap-buffer size-bytes)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer size-bytes)]
     (doto buffer
-      (.putInt (count data-bytes)))
+      (^Integer .putInt (uint->int (count data-bytes))))
     [size-bytes data-bytes]))
 
 (defn transform-data
@@ -90,9 +95,9 @@
   stat structures properly. Otherwise, just pass a raw byte-array to `:data`
   for it to get packed regularly."
   [coll]
-  (let [type' (:type coll)  ;; these fields are for the instrumented
+  (let [typ (:type coll)    ;; these fields are for the instrumented
         data (:data coll)]  ;; directory encoder.
-    (if (= type' :directory)
+    (if (= typ :directory)
       (flatten (transform-directory data))
       (flatten (transform-raw-data coll)))))
 

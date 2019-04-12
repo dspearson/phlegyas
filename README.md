@@ -1,7 +1,7 @@
 # Plan 9 Filesystem Protocol, as implemented in Clojure.
 
 ```clj
-[phlegyas "0.1.1"]
+[phlegyas "0.1.2"]
 ```
 
 The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space](https://9fans.github.io/plan9port/man/man9/) project.
