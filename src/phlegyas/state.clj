@@ -88,12 +88,11 @@
         (if (empty? wname-paths)
           (error! "path cannot be walked")
           (state! {:update {:fids (conj (:fids current-state) newfid)
-                            :mapping (assoc (:mapping current-state) newfid {:filesystem fs-name :path (last wname-paths)})}
+                            :mapping (assoc (:mapping current-state) newfid {:filesystem fs-name :path (last wname-paths) :offset 0})}
                    :reply {:nwqids qids}}))))))
 
 (defn Topen
   [frame state]
-  (log/info "In Topen")
   (let [current-state @state
         fid (:fid frame)
         mapping (get (:mapping current-state) fid)
@@ -105,7 +104,7 @@
         qid (stat->qid stat)]
     (if (not (permission-check stat role :oread))
       (error! "no read permission")
-      (state! {:update {:mapping (into mapping {:offset 0})}
+      (state! {:update {:mapping (assoc (:mapping current-state) fid (into mapping {:offset 0}))}
                :reply {:iounit (iounit!)
                        :qid-type (:qid-type qid)
                        :qid-vers (:qid-vers qid)
@@ -126,13 +125,15 @@
     (case typ
       :dir (if (> offset 0)
              (state! {:reply {:data nil}})
-             (let [data (directory-reader (into [] (for [x (:children stat)] (path->stat fs x))))]
-               (state! {:update {:mapping (into mapping {:offset (+ (:offset mapping) (count (flatten data)))})}
-                        :reply {:data data}})))
+             (let [data (-> (directory-reader (into [] (for [x (:children stat)] (path->stat fs x))) byte-count) flatten pack)
+                   delivered-byte-count (count data)]
+               (state! {:update {:mapping (assoc (:mapping @state) (:fid frame) (into mapping {:offset (+ offset delivered-byte-count)}))}
+                        :reply {:data data
+                                :count delivered-byte-count}})))
       :file (if (>= offset (:length stat))
               (state! {:reply {:data nil}})
               (let [data ((:contents stat) {:stat stat :offset offset :count byte-count})]
-                (state! {:update {:mapping (into mapping {:offset (+ (:offset mapping) (count (flatten data)))})}
+                (state! {:update {:mapping (assoc (:mapping @state) (:fid frame) (into mapping {:offset (+ (:offset mapping) (count (flatten data)))}))}
                          :reply {:data data}}))))))
 
 (defn Twrite
@@ -152,8 +153,6 @@
 
 (defn Tstat
   [frame state]
-  (log/info "In tstat")
-  (log/info frame)
   (let [current-state @state
         fid (:fid frame)
         mapping (get (:mapping current-state) fid)
@@ -171,21 +170,16 @@
 
 (defn state-handler
   [frame state out]
-  (let [thread-id (str (gensym "thread_"))]
-    (log/info thread-id "state handler")
-    (log/info thread-id frame)
-
-    (let [reply (((:frame frame) state-handlers) frame state)
-          next-frame (:frame reply)
-          state-change (:state-change (:metadata reply))]
+  (let [reply (((:frame frame) state-handlers) frame state)
+        next-frame (:frame reply)
+        state-change (:state-change (:metadata reply))]
 
     ;; if you need to block on state changes, here's a place to do it.
     ;; you could even put the insertion of the reply frame into a deferred.
     ;; (if state-change
     ;;   (log/info "State change occurred." @state-change))
-    (log/info thread-id next-frame)
 
-    (s/put! out next-frame))))
+    (s/put! out next-frame)))
 
 (defn consume-with-state [in out state f]
   (d/loop []
