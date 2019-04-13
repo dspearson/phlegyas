@@ -10,6 +10,10 @@
     (let [buffer (ByteBuffer/wrap x)]
       (.order buffer java.nio.ByteOrder/LITTLE_ENDIAN))))
 
+(defn uuid!
+  []
+  (.toString (java.util.UUID/randomUUID)))
+
 (defn pack
   "Pack a sequence into a byte array."
   [coll]

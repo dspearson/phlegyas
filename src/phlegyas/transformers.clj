@@ -22,7 +22,7 @@
   (for [typ layout]
     (if (some? (get transformer typ))
       ((get transformer typ) (get frame typ))
-      (let [^java.nio.ByteBuffer buffer (byte-array (typ type-size))]
+      (let [buffer (byte-array (typ type-size))]
         ((get buffer-operator typ) (wrap-buffer buffer) (get frame typ))
         buffer))))
 

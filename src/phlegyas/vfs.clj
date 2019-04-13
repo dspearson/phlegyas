@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [phlegyas.types :refer :all]
             [phlegyas.util :refer :all]
+            [phlegyas.transformers :refer :all]
             [clojure.string :as string]
             [clojure.set :as set]
             [primitive-math :as math
@@ -276,3 +277,18 @@
 (defn fid->mapping
   [fid conn]
   (get (:mapping conn) fid))
+
+(defn directory-reader
+  [statcoll max-size]
+  (let [layout (subvec (:Rstat frame-layouts) 2)]
+    (loop [accum []
+           stats-left statcoll]
+      (cond
+        (> (count (flatten accum)) max-size)
+        (rest accum)
+
+        (empty? stats-left)
+        accum
+
+        :else
+        (recur (conj accum (transform (first stats-left) layout)) (rest stats-left))))))

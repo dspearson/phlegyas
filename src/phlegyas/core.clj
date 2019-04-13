@@ -10,12 +10,16 @@
             [taoensso.timbre :as log])
   (:gen-class))
 
+(def global-connections (atom {}))
+
 (defn server!
   [in out]
   (let [state (atom {:root-filesystem #'example-filesystem!})
         incoming-frame-stream (s/stream)
         outgoing-frame-stream (s/stream)
+        uuid (keyword (uuid!))
         _ (frame-assembler in incoming-frame-stream)]
+    (swap! global-connections assoc uuid state)
     (s/connect-via outgoing-frame-stream #(s/put! out (assemble-packet %)) out)
     (consume-with-state incoming-frame-stream outgoing-frame-stream state #'state-handler)))
 
