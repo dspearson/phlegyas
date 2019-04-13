@@ -30,6 +30,10 @@ For testing:
 
 `git clone https://github.com/9fans/plan9port.git && cd plan9port && ./INSTALL`
 
+Using Docker:
+
+Refer to https://github.com/dspearson/plan9port-docker
+
 Then run the built 9P FUSE client:
 
 `9pfuse -D 'tcp!localhost!10001' mount-point-goes-here`
