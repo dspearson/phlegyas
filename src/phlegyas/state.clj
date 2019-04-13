@@ -123,22 +123,35 @@
         stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
     (case typ
-      :dir (if (and (> offset 0) (> offset (:offset mapping)))
+
+      :dir (if (and
+                (> offset 0)
+                (not (= offset (:offset mapping))))
+             ; reads of directories must begin at offset 0, or the previous offset +
+             ; the last returned byte count, for followup reads of incomplete data.
+             ; i.e., either offset = 0, or offset = previous offset + previous count.
              (error! "cannot seek in directories!")
-             (let [dirpaths (or (:paths-remaining mapping) (:children stat))
+
+             (let [dirpaths (if (= offset 0)              ; read directory from beginning...
+                              (:children stat)            ; so return all children.
+                              (:paths-remaining mapping)) ; or else, we are continuing a previous read call.
+
+                   ; `directory-reader` returns a vector, first the data, and second, any remaining paths not visited.
+                   ; this can happen if the read call on a directory is larger than the size allowed in a message,
+                   ; and read calls can only return integral stat entries, so we need to store the list of paths that
+                   ; were not visited in this iteration, so that followup reads can continue where we left off.
                    [data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) byte-count)
                    delivered-byte-count (count data)]
-               (state! {:update {:mapping (assoc (:mapping @state)
-                                                 (:fid frame)
-                                                 (into mapping {:offset (+ offset delivered-byte-count)
-                                                                :paths-remaining paths-remaining}))}
-                        :reply {:data data
-                                :count delivered-byte-count}})))
-      :file (if (>= offset (:length stat))
-              (state! {:reply {:data nil}})
-              (let [data ((:contents stat) {:stat stat :offset offset :count byte-count})]
-                (state! {:update {:mapping (assoc (:mapping @state) (:fid frame) (into mapping {:offset (+ (:offset mapping) (count (flatten data)))}))}
-                         :reply {:data data}}))))))
+               (state! {:update {:mapping (assoc (:mapping @state)                                   ; update the mapping
+                                                 (:fid frame)                                        ; for followup reads:
+                                                 (into mapping {:offset (+ offset (count data))      ; update the offset and the
+                                                                :paths-remaining paths-remaining}))} ; list of unread directories.
+                        :reply {:data data}})))
+
+      :file (if (>= offset (:length stat))                                                 ; if offset >= length, it means that we are
+              (state! {:reply {:data nil}})                                                ; reading beyond end of file, so return no data.
+              (let [data ((:contents stat) {:stat stat :offset offset :count byte-count})] ; else, read file via calling the contents fn.
+                (state! {:reply {:data data}}))))))
 
 (defn Twrite
   [frame state]
