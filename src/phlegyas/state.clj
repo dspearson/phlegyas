@@ -93,6 +93,7 @@
 
 (defn Topen
   [frame state]
+  (log/info "In Topen")
   (let [current-state @state
         fid (:fid frame)
         mapping (get (:mapping current-state) fid)
@@ -104,7 +105,8 @@
         qid (stat->qid stat)]
     (if (not (permission-check stat role :oread))
       (error! "no read permission")
-      (state! {:reply {:iounit (iounit!)
+      (state! {:update {:mapping (into mapping {:offset 0})}
+               :reply {:iounit (iounit!)
                        :qid-type (:qid-type qid)
                        :qid-vers (:qid-vers qid)
                        :qid-path (:qid-path qid)}}))))
@@ -124,10 +126,14 @@
     (case typ
       :dir (if (> offset 0)
              (state! {:reply {:data nil}})
-             (state! {:reply {:data {:type :directory :data (into [] (for [x (:children stat)] (path->stat fs x)))}}})) ;; FIXME: see [1]
+             (let [data (directory-reader (into [] (for [x (:children stat)] (path->stat fs x))))]
+               (state! {:update {:mapping (into mapping {:offset (+ (:offset mapping) (count (flatten data)))})}
+                        :reply {:data data}})))
       :file (if (>= offset (:length stat))
               (state! {:reply {:data nil}})
-              (state! {:reply {:data ((:contents stat) {:stat stat :offset offset :count byte-count})}})))))
+              (let [data ((:contents stat) {:stat stat :offset offset :count byte-count})]
+                (state! {:update {:mapping (into mapping {:offset (+ (:offset mapping) (count (flatten data)))})}
+                         :reply {:data data}}))))))
 
 (defn Twrite
   [frame state]
@@ -146,6 +152,8 @@
 
 (defn Tstat
   [frame state]
+  (log/info "In tstat")
+  (log/info frame)
   (let [current-state @state
         fid (:fid frame)
         mapping (get (:mapping current-state) fid)
@@ -163,16 +171,21 @@
 
 (defn state-handler
   [frame state out]
-  (let [reply (((:frame frame) state-handlers) frame state)
-        next-frame (:frame reply)
-        state-change (:state-change (:metadata reply))]
+  (let [thread-id (str (gensym "thread_"))]
+    (log/info thread-id "state handler")
+    (log/info thread-id frame)
+
+    (let [reply (((:frame frame) state-handlers) frame state)
+          next-frame (:frame reply)
+          state-change (:state-change (:metadata reply))]
 
     ;; if you need to block on state changes, here's a place to do it.
     ;; you could even put the insertion of the reply frame into a deferred.
     ;; (if state-change
     ;;   (log/info "State change occurred." @state-change))
+    (log/info thread-id next-frame)
 
-    (s/put! out next-frame)))
+    (s/put! out next-frame))))
 
 (defn consume-with-state [in out state f]
   (d/loop []
