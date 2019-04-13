@@ -95,20 +95,18 @@
   [frame state]
   (let [current-state @state
         fid (:fid frame)
-        mapping (get (:mapping current-state) fid)
-        fs-name (:filesystem mapping)
-        fs (fs-name (:fs-map current-state))
+        mapping (fid->mapping fid current-state)
+        fs ((:filesystem mapping) (:fs-map current-state))
         path (:path mapping)
         role (fid->role fid current-state)
-        stat (path->stat fs path)
-        qid (stat->qid stat)]
+        stat (path->stat fs path)]
     (if (not (permission-check stat role :oread))
       (error! "no read permission")
-      (state! {:update {:mapping (assoc (:mapping current-state) fid (into mapping {:offset 0}))}
+      (state! {:update {:mapping (update-mapping fid (:mapping current-state) {:offset 0})}
                :reply {:iounit (iounit!)
-                       :qid-type (:qid-type qid)
-                       :qid-vers (:qid-vers qid)
-                       :qid-path (:qid-path qid)}}))))
+                       :qid-type (:qid-type stat)
+                       :qid-vers (:qid-vers stat)
+                       :qid-path (:qid-path stat)}}))))
 
 (defn Tcreate
   [frame state]

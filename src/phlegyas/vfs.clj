@@ -301,3 +301,7 @@
                (:qid-path (first stats-left))
                (disj paths (:qid-path (first stats-left)))
                (rest stats-left))))))
+
+(defn update-mapping
+  [fid mapping data]
+  (assoc mapping fid (into (get mapping fid) data)))
