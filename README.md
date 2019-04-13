@@ -1,7 +1,7 @@
 # Plan 9 Filesystem Protocol, as implemented in Clojure.
 
 ```clj
-[phlegyas "0.1.2-SNAPSHOT"]
+[phlegyas "0.1.3-SNAPSHOT"]
 ```
 
 *WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!*
