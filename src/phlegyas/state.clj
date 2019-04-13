@@ -123,11 +123,15 @@
         stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
     (case typ
-      :dir (if (> offset 0)
-             (state! {:reply {:data nil}})
-             (let [data (-> (directory-reader (into [] (for [x (:children stat)] (path->stat fs x))) byte-count) flatten pack)
+      :dir (if (and (> offset 0) (> offset (:offset mapping)))
+             (error! "cannot seek in directories!")
+             (let [dirpaths (or (:paths-remaining mapping) (:children stat))
+                   [data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) byte-count)
                    delivered-byte-count (count data)]
-               (state! {:update {:mapping (assoc (:mapping @state) (:fid frame) (into mapping {:offset (+ offset delivered-byte-count)}))}
+               (state! {:update {:mapping (assoc (:mapping @state)
+                                                 (:fid frame)
+                                                 (into mapping {:offset (+ offset delivered-byte-count)
+                                                                :paths-remaining paths-remaining}))}
                         :reply {:data data
                                 :count delivered-byte-count}})))
       :file (if (>= offset (:length stat))

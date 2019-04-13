@@ -281,14 +281,23 @@
 (defn directory-reader
   [statcoll max-size]
   (let [layout (subvec (:Rstat frame-layouts) 2)]
-    (loop [accum []
+    (loop [accum '()
+           last-path nil
+           paths (into #{} (map (fn [x] (:qid-path x)) statcoll))
            stats-left statcoll]
       (cond
         (> (count (flatten accum)) max-size)
-        (rest accum)
+        [(-> accum rest flatten pack)
+         (if last-path
+           (conj paths last-path)
+           paths)]
 
         (empty? stats-left)
-        accum
+        [(-> accum flatten pack)
+         paths]
 
         :else
-        (recur (conj accum (transform (first stats-left) layout)) (rest stats-left))))))
+        (recur (conj accum (transform (first stats-left) layout))
+               (:qid-path (first stats-left))
+               (disj paths (:qid-path (first stats-left)))
+               (rest stats-left))))))
