@@ -136,11 +136,6 @@
   [path]
   (file->stat "/" path :read-fn #'identity))
 
-(defn insert-file!
-  [fs path stat]
-  (let [files (:files fs)]
-    (assoc fs :files (assoc files path stat))))
-
 (defn update-children!
   [fs path child]
   (let [stat (path->stat fs path)
@@ -148,6 +143,13 @@
         updated-stat (assoc stat :children (conj children child))
         updated-files (assoc (:files fs) path updated-stat)]
     (assoc fs :files updated-files)))
+
+(defn insert-file!
+  [fs parent path stat]
+  (let [files (:files fs)]
+    (-> fs
+        (assoc :files (assoc files path stat))
+        (update-children! parent path))))
 
 (defn synthetic-file
   [path filename owner group mode contents read-fn length-fn]
@@ -187,10 +189,8 @@
                                              (sizeof-string (str (quot (System/currentTimeMillis) 1000))))
         root-dir (root-dir root-path)]
     (-> (map->filesystem {:files {root-path root-dir} :path-pool path-pool :id id :root-path root-path})
-        (insert-file! file-path example-file)
-        (insert-file! another-file-path another-example-file)
-        (update-children! root-path file-path)
-        (update-children! root-path another-file-path))))
+        (insert-file! root-path file-path example-file)
+        (insert-file! root-path another-file-path another-example-file))))
 
 (defn stat-file
   [fs path]

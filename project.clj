@@ -7,6 +7,8 @@
                  [primitive-math "0.1.6"]
                  [manifold "0.1.9-alpha3"]
                  [aleph "0.4.6"]
+                 [instaparse "1.4.10"]
+                 [aero "1.1.3"]
                  [com.taoensso/timbre "4.10.0"]]
   :plugins [[cider/cider-nrepl "0.21.1"]
             [jonase/eastwood "0.3.5"]]
