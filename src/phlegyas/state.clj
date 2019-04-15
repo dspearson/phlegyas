@@ -184,6 +184,11 @@
 (def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
 (defn state-handler
+  "An example state handler. Takes in a `frame`, the `state` atom, and an outport.
+  Messages that reach a 9P server can be executed in any order, and it is the job
+  of the client to ensure that it does not send conflicting messages before the
+  acknowledgement of a previous action has been sent. Therefore, this can be
+  executed asynchronously inside a future."
   [frame state out]
   (let [reply (((:frame frame) state-handlers) frame state)
         next-frame (:frame reply)
@@ -200,12 +205,14 @@
   (d/loop []
     (d/chain (s/take! in ::drained)
              ;; if we got a message, run it through `f`
+             ;; as a future, and immediately return.
              (fn [frame]
                (if (identical? ::drained frame)
                  ::drained
-                 (f frame state out)))
+                 (do
+                   (d/future (f frame state out))
+                   ::future)))
 
-             ;; wait for the result from `f` to be realized, and
              ;; recur, unless the stream is already drained
              (fn [result]
                (when-not (identical? ::drained result)
