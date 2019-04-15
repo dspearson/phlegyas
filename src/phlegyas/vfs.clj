@@ -55,9 +55,9 @@
   (let [permissions (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
                       (string/lower-case (str x)))
         permission-map (for [x ["owner" "group" "others"]]
-                               {(keyword x) (set (map (fn [x] (keyword (second (string/split x #"_"))))
-                                              (filter #(string/starts-with? % x) permissions)))})]
-        (into {} permission-map)))
+                         {(keyword x) (set (map (fn [x] (keyword (second (string/split x #"_"))))
+                                                (filter #(string/starts-with? % x) permissions)))})]
+    (into {} permission-map)))
 
 (defn owner
   [fh]
@@ -228,16 +228,20 @@
 (defn print-current-time
   [stat frame state]
   (let [fid (:fid frame)
-        current-time (str (quot (System/currentTimeMillis) 1000))
+        offset (:offset frame)
+        current-time (quot (System/currentTimeMillis) 1000)
         current-time-bytes (.getBytes (str current-time "\n") "UTF-8")
         file-time (:time (:metadata stat))]
-    (swap! state (fn [x] (update-stat x fid {:length (+ 1 (:length stat) (count current-time-bytes))})))
-    (if (= current-time file-time)
-      (byte-array 0)
-      (do
-        (swap! state (fn [x] (update-stat x fid {:metadata {:time current-time}
-                                                :qid-vers (int (hash current-time))})))
-        current-time-bytes))))
+
+    (swap! state (fn [x] (update-stat x fid {:metadata {:time current-time}
+                                            :atime current-time
+                                            :mtime current-time
+                                            :qid-vers (int (hash current-time))
+                                            :length (ulong->long (+ 1 offset (count current-time-bytes)))})))
+
+    (if (or (= offset 0) (not= current-time file-time))
+      current-time-bytes
+      (byte-array 0))))
 
 (defn example-filesystem!
   []
