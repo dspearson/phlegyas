@@ -26,17 +26,15 @@ Jack in with Spacemacs/CIDER with `,'` and then, at the REPL, `(r)`
 
 This will start a server at localhost on port 10001.
 
-For testing:
+For testing, build [plan9port](https://9fans.github.io/plan9port/) (will require compilers & development headers):
 
 `git clone https://github.com/9fans/plan9port.git && cd plan9port && ./INSTALL`
 
-Using Docker:
+Or, alternatively, if you have _Docker_ installed, [there is a project](https://github.com/dspearson/plan9port-docker) that will do this for you inside a container, so you don't have to touch your base system.
 
-Refer to https://github.com/dspearson/plan9port-docker
+Then, run the built 9P FUSE client, e.g.:
 
-Then run the built 9P FUSE client:
-
-`9pfuse -D 'tcp!localhost!10001' mount-point-goes-here`
+`9pfuse -D 'tcp!localhost!10001' mountpoint`
 
 This should aid in the development cycle.
 
