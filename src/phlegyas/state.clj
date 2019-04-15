@@ -17,22 +17,16 @@
 
 (defmacro error!
   [ermsg]
-  `{:frame (into ~'frame {:frame :Rerror :ename ~ermsg})})
+  `(into ~'frame {:frame :Rerror :ename ~ermsg}))
 
 (defmacro state!
   [data]
-  `(let [changed-state# (:update ~data)
-         update-fn# (:update-fn ~data)
+  `(let [state-update# (:update ~data)
          reply-typ# ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
-         next-frame# (assoc (:reply ~data) :frame reply-typ#)
-         state-change# (if changed-state#                        ;; do the state change asynchronously,
-                         (d/future                               ;; wrapped in a future,
-                           (if update-fn#                        ;; so we can return a reply immediately if desired...
-                             (update-fn# ~'state changed-state#) ;; and even pass in a specialist fn for state change.
-                             (swap! ~'state (fn [x# y#] (into x# y#)) changed-state#)))
-                         nil)]
-     {:frame (into ~'frame next-frame#)
-      :metadata {:state-change state-change#}}))
+         frame-update# (assoc (:reply ~data) :frame reply-typ#)
+         _# (if state-update#
+             (swap! ~'state state-update#))]
+     (into ~'frame frame-update#)))
 
 (defn Tversion
   [frame state]
@@ -40,9 +34,9 @@
         version-string (:version frame)]
     (cond
       (not (string/starts-with? version-string protocol-version)) (state! {:reply {:version "unknown"}})
-      (<= requested-message-size max-message-size) (state! {:update {:msize requested-message-size}
+      (<= requested-message-size max-message-size) (state! {:update (fn [x] (assoc x :msize max-message-size))
                                                             :reply {:version protocol-version}})
-      :else (state! {:update {:msize max-message-size}
+      :else (state! {:update (fn [x] (assoc x :msize max-message-size))
                      :reply {:version protocol-version
                              :msize max-message-size}}))))
 
@@ -52,18 +46,17 @@
 
 (defn Tattach
   [frame state]
-  (let [current-state @state
-        fid (:fid frame)
-        fs ((:root-filesystem current-state))
-        fs-map (assoc (:fs-map current-state) (:id fs) fs)
-        fids (set (conj (:fids current-state) fid))
-        mapping (assoc (:mapping current-state) fid {:filesystem (:id fs) :path (:root-path fs)})
-        role (assoc (:user current-state) (:id fs) {:uid (:uname frame) :gid (:uname frame)})]
-    (state! {:update {:fs-map fs-map
-                      :fids fids
-                      :root-filesystem-name (:id fs)
-                      :mapping mapping
-                      :role role}
+  (let [fid (:fid frame)
+        fs ((:root-filesystem @state))
+        fsid (:id fs)
+        path (:root-path fs)
+        uid (:uname frame)
+        gid (:uname frame)]
+    (state! {:update (fn [x] (-> x
+                                (add-fs fs)
+                                (add-fid fid)
+                                (add-mapping fid fsid path)
+                                (add-role fsid uid gid)))
              :reply (path->qid fs (:root-path fs))})))
 
 (defn Tflush
@@ -81,14 +74,17 @@
         fs (fs-name (:fs-map current-state))
         path (:path mapping)]
     (if (= (count wnames) 0)
-      (state! {:update (assoc-fid current-state fid newfid)
+      (state! {:update (fn [x] (-> x
+                                  (add-fid newfid)
+                                  (add-mapping newfid fs-name path)))
                :reply {:nwqids []}})
       (let [wname-paths (walk-path fs path wnames)
             qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
         (if (empty? wname-paths)
           (error! "path cannot be walked")
-          (state! {:update {:fids (conj (:fids current-state) newfid)
-                            :mapping (assoc (:mapping current-state) newfid {:filesystem fs-name :path (last wname-paths) :offset 0})}
+          (state! {:update (fn [x] (-> x
+                                      (add-fid newfid)
+                                      (add-mapping newfid fs-name (last wname-paths))))
                    :reply {:nwqids qids}}))))))
 
 (defn Topen
@@ -102,7 +98,7 @@
         stat (path->stat fs path)]
     (if (not (permission-check stat role :oread))
       (error! "no read permission")
-      (state! {:update {:mapping (update-mapping fid (:mapping current-state) {:offset 0})}
+      (state! {:update (fn [x] (update-mapping x fid {:offset 0}))
                :reply {:iounit (iounit!)
                        :qid-type (:qid-type stat)
                        :qid-vers (:qid-vers stat)
@@ -116,7 +112,8 @@
   [frame state]
   (let [offset (:offset frame)
         byte-count (:count frame)
-        mapping (fid->mapping (:fid frame) @state)
+        fid (:fid frame)
+        mapping (fid->mapping fid @state)
         fs ((:filesystem mapping) (:fs-map @state))
         stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
@@ -140,10 +137,8 @@
                    ; were not visited in this iteration, so that followup reads can continue where we left off.
                    [data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) byte-count)
                    delivered-byte-count (count data)]
-               (state! {:update {:mapping (assoc (:mapping @state)                                   ; update the mapping
-                                                 (:fid frame)                                        ; for followup reads:
-                                                 (into mapping {:offset (+ offset (count data))      ; update the offset and the
-                                                                :paths-remaining paths-remaining}))} ; list of unread directories.
+               (state! {:update (fn [x] (update-mapping x fid {:offset (+ offset (count data))
+                                                              :paths-remaining paths-remaining}))
                         :reply {:data data}})))
 
       :file (if (>= offset (:length stat))                                                 ; if offset >= length, it means that we are
@@ -159,8 +154,8 @@
   [frame state]
   (let [current-state @state
         fid (:fid frame)]
-    (state! {:update {:fids (disj (:fids current-state) fid)
-                      :mapping (dissoc (:mapping current-state) fid)}})))
+    (state! {:update (fn [x] (-> (into x {:fids (disj (:fids x) fid)
+                                         :mapping (dissoc (:mapping x) fid)})))})))
 
 (defn Tremove
   [frame state]
@@ -190,16 +185,7 @@
   acknowledgement of a previous action has been sent. Therefore, this can be
   executed asynchronously inside a future."
   [frame state out]
-  (let [reply (((:frame frame) state-handlers) frame state)
-        next-frame (:frame reply)
-        state-change (:state-change (:metadata reply))]
-
-    ;; if you need to block on state changes, here's a place to do it.
-    ;; you could even put the insertion of the reply frame into a deferred.
-    ;; (if state-change
-    ;;   (log/info "State change occurred." @state-change))
-
-    (s/put! out next-frame)))
+  (s/put! out (((:frame frame) state-handlers) frame state)))
 
 (defn consume-with-state [in out state f]
   (d/loop []

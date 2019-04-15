@@ -202,13 +202,25 @@
   [stat]
   ((:contents stat) stat))
 
-(defn assoc-fid
-  [state fid newfid]
-  (let [mapping (get (:mapping state) fid)
-        fs-name (:fs-name mapping)
-        path (:path mapping)]
-    {:fids (conj (:fids state) newfid)
-     :mapping (assoc (:mapping state) newfid mapping)}))
+(defn add-fs
+  [state fs]
+  (assoc state :fs-map (assoc (:fs-map state) (:id fs) fs)))
+
+(defn add-mapping
+  [state fid fs path]
+  (assoc state :mapping (assoc (:mapping state) fid {:filesystem fs :path path :offset 0})))
+
+(defn update-mapping
+  [state fid data]
+  (assoc state :mapping (assoc (:mapping state) fid (into (get (:mapping state) fid) data))))
+
+(defn add-fid
+  [state fid]
+  (assoc state :fids (set (conj (:fids state) fid))))
+
+(defn add-role
+  [state fsid uid gid]
+  (assoc state :role (assoc (:role state) fsid {:uid uid :gid gid})))
 
 (defn path->name
   [fs path]
@@ -301,7 +313,3 @@
                (:qid-path (first stats-left))
                (disj paths (:qid-path (first stats-left)))
                (rest stats-left))))))
-
-(defn update-mapping
-  [fid mapping data]
-  (assoc mapping fid (into (get mapping fid) data)))
