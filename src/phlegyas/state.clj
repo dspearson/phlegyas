@@ -91,7 +91,7 @@
   [frame state]
   (let [current-state @state
         fid (:fid frame)
-        mapping (fid->mapping fid current-state)
+        mapping (fid->mapping current-state fid)
         fs ((:filesystem mapping) (:fs-map current-state))
         path (:path mapping)
         role (fid->role fid current-state)
@@ -113,7 +113,7 @@
   (let [offset (:offset frame)
         byte-count (:count frame)
         fid (:fid frame)
-        mapping (fid->mapping fid @state)
+        mapping (fid->mapping @state fid)
         fs ((:filesystem mapping) (:fs-map @state))
         stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
@@ -141,10 +141,13 @@
                                                               :paths-remaining paths-remaining}))
                         :reply {:data data}})))
 
-      :file (if (>= offset (:length stat))                                                 ; if offset >= length, it means that we are
-              (state! {:reply {:data nil}})                                                ; reading beyond end of file, so return no data.
-              (let [data ((:contents stat) {:stat stat :offset offset :count byte-count})] ; else, read file via calling the contents fn.
-                (state! {:reply {:data data}}))))))
+      :file (if (and (not= 0 (:length stat)) (>= offset (:length stat))) ; if offset >= length, it means that we are
+              (state! {:reply {:data nil}})                              ; reading beyond end of file, so return no data.
+              (let [data ((:read-fn stat) stat frame state)]             ; else, read file via calling the read-fn.
+                (state! {:reply {:data data}})))
+
+      :append (let [data ((:read-fn stat) stat frame state)]
+                  (state! {:reply {:data data}})))))
 
 (defn Twrite
   [frame state]

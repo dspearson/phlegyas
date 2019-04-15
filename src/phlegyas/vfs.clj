@@ -95,6 +95,10 @@
   [fs path]
   (get (:files fs) path))
 
+(defn fid->mapping
+  [conn fid]
+  (get (:mapping conn) fid))
+
 (defn file->stat
   [file path & {:keys [read-fn parent length] :or {read-fn #'identity parent nil length nil}}]
   (let [fh (io/file file)
@@ -144,27 +148,36 @@
         updated-files (assoc (:files fs) path updated-stat)]
     (assoc fs :files updated-files)))
 
+(defn next-available-path
+  [fs]
+  (ulong->long (swap! (:path-pool fs) inc)))
+
 (defn insert-file!
-  [fs parent path stat]
-  (let [files (:files fs)]
+  [fs parent stat]
+  (let [files (:files fs)
+        path (or (:qid-path stat) (next-available-path fs))]
     (-> fs
-        (assoc :files (assoc files path stat))
+        (assoc :files (assoc files path (assoc stat :parent parent :qid-path path)))
         (update-children! parent path))))
 
+(defn create-filesystem
+  []
+  (let [path-pool (atom 0)
+        root-dir (root-dir 0)]
+    (map->filesystem {:files {0 root-dir} :path-pool path-pool :id (keyword (gensym "filesystem_")) :root-path 0})))
+
 (defn synthetic-file
-  [path filename owner group mode contents read-fn length-fn]
+  [filename owner group mode read-fn metadata append]
   (let [size (stat-size filename owner group owner)]
-    (map->stat {:qid-type (:file qt-mode)
+    (map->stat {:qid-type (if append (:append qt-mode) (:file qt-mode))
                 :qid-vers 0
-                :qid-path path
                 :permissions {:owner #{:read}, :group #{:read}, :others #{:read}}
                 :type 0
                 :dev 0
                 :mode mode
                 :atime 0
                 :mtime 0
-                :length length-fn
-                :custom-data-field contents
+                :length 0
                 :name filename
                 :uid owner
                 :gid group
@@ -172,25 +185,68 @@
                 :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
                 :size size
                 :children #{}
-                :parent 0
-                :contents read-fn})))
+                :metadata metadata
+                :read-fn read-fn})))
+
+(defn example-function-for-files
+  [stat frame state]
+  (if (> (:offset frame) 0)
+    (byte-array 0)
+    (.getBytes "hello, world!\n" "UTF-8")))
+
+(defn create-synthetic-file
+  [filename function-call & {:keys [owner group mode metadata append]
+                             :or {owner "root"
+                                  group "root"
+                                  mode 0400
+                                  additional-data nil
+                                  append false}}]
+  (synthetic-file filename owner group mode function-call metadata append))
+
+(defn fid->stat
+  [state fid]
+  (let [mapping (fid->mapping state fid)
+        path (:path mapping)
+        fs ((:filesystem mapping) (:fs-map state))]
+    (get (:files fs) path)))
+
+(defmacro fid->fsname
+  [state fid]
+  `(let [mapping# (fid->mapping ~state ~fid)]
+     (:filesystem mapping#)))
+
+(defn update-stat
+  [state fid data]
+  (let [fs-name (fid->fsname state fid)
+        stat (into (fid->stat state fid) data)]
+    (update-in state [:fs-map fs-name :files] (fn [x] (assoc x (:qid-path stat) stat)))))
+
+(defn update-mapping
+  [state fid data]
+  (update-in state [:mapping fid] (fn [x] (into x data))))
+
+(defn print-current-time
+  [stat frame state]
+  (let [fid (:fid frame)
+        current-time (str (quot (System/currentTimeMillis) 1000))
+        current-time-bytes (.getBytes (str current-time "\n") "UTF-8")
+        file-time (:time (:metadata stat))]
+    (swap! state (fn [x] (update-stat x fid {:length (+ 1 (:length stat) (count current-time-bytes))})))
+    (if (= current-time file-time)
+      (byte-array 0)
+      (do
+        (swap! state (fn [x] (update-stat x fid {:metadata {:time current-time}
+                                                :qid-vers (int (hash current-time))})))
+        current-time-bytes))))
 
 (defn example-filesystem!
   []
-  (let [id (keyword (gensym "fs"))
-        path-pool (atom 0)
-        root-path @path-pool
-        file-path (swap! path-pool inc)
-        another-file-path (swap! path-pool inc)
-        read-fn (fn [x] (.getBytes (:custom-data-field (:stat x)) "UTF-8"))
-        example-file (synthetic-file file-path "synthetic-file" "root" "root" 0444 "hello, world!" read-fn (sizeof-string "hello, world!"))
-        another-example-file (synthetic-file another-file-path "current-time" "root" "root" 0444 ""
-                                             (fn [x] (.getBytes (str (quot (System/currentTimeMillis) 1000)) "UTF-8"))
-                                             (sizeof-string (str (quot (System/currentTimeMillis) 1000))))
-        root-dir (root-dir root-path)]
-    (-> (map->filesystem {:files {root-path root-dir} :path-pool path-pool :id id :root-path root-path})
-        (insert-file! root-path file-path example-file)
-        (insert-file! root-path another-file-path another-example-file))))
+  (let [root-fs (create-filesystem)
+        root-path (:root-path root-fs)
+        another-example-file (create-synthetic-file "current-time" #'print-current-time :metadata {:time 0} :append true)]
+    (-> root-fs
+        (insert-file! root-path (create-synthetic-file "example-file" #'example-function-for-files))
+        (insert-file! root-path another-example-file))))
 
 (defn stat-file
   [fs path]
@@ -285,10 +341,6 @@
 (defn stat-type
   [stat]
   ((keywordize (:qid-type stat)) reverse-qt-mode))
-
-(defn fid->mapping
-  [fid conn]
-  (get (:mapping conn) fid))
 
 (defn directory-reader
   [statcoll max-size]

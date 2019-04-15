@@ -37,6 +37,7 @@
 
 (defn go
   []
+  (def global-connections (atom {}))
   (def srv (tcp/start-server tcp-route {:port 10001 :join? false})))
 
 (defn r
