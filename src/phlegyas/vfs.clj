@@ -167,7 +167,7 @@
     (map->filesystem {:files {0 root-dir} :path-pool path-pool :id (keyword (gensym "filesystem_")) :root-path 0})))
 
 (defn synthetic-file
-  [filename owner group mode read-fn metadata append]
+  [filename owner group mode read-fn write-fn metadata append]
   (let [size (stat-size filename owner group owner)]
     (map->stat {:qid-type (if append (:append qt-mode) (:file qt-mode))
                 :qid-vers 0
@@ -186,6 +186,7 @@
                 :size size
                 :children #{}
                 :metadata metadata
+                :write-fn write-fn
                 :read-fn read-fn})))
 
 (defn example-function-for-files
@@ -195,13 +196,14 @@
     (.getBytes "hello, world!\n" "UTF-8")))
 
 (defn create-synthetic-file
-  [filename function-call & {:keys [owner group mode metadata append]
+  [filename function-call & {:keys [owner group mode metadata append write-fn]
                              :or {owner "root"
                                   group "root"
                                   mode 0400
+                                  write-fn nil
                                   additional-data nil
                                   append false}}]
-  (synthetic-file filename owner group mode function-call metadata append))
+  (synthetic-file filename owner group mode function-call write-fn metadata append))
 
 (defn fid->stat
   [state fid]
@@ -224,6 +226,20 @@
 (defn update-mapping
   [state fid data]
   (update-in state [:mapping fid] (fn [x] (into x data))))
+
+(defn example-read-write
+  [stat frame state]
+  (let [offset (:offset frame)
+        fid (:fid frame)
+        count-bytes (count (:data frame))
+        contents (:contents (:metadata stat))
+        operation (if (= (:frame frame) :Tread) :read :write)]
+    (if (= (:frame frame) :Twrite)
+      (do
+        (swap! state (fn [x] (update-stat x fid {:metadata {:contents (conj contents (:data frame))}
+                                                :length (+ (:length stat) count-bytes)})))
+        (uint->int count-bytes))
+      (-> contents flatten pack))))
 
 (defn print-current-time
   [stat frame state]
@@ -249,6 +265,7 @@
         root-path (:root-path root-fs)
         another-example-file (create-synthetic-file "current-time" #'print-current-time :metadata {:time 0} :append true)]
     (-> root-fs
+        (insert-file! root-path (create-synthetic-file "write-to-me" #'example-read-write :write-fn #'example-read-write))
         (insert-file! root-path (create-synthetic-file "example-file" #'example-function-for-files))
         (insert-file! root-path another-example-file))))
 

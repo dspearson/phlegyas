@@ -151,7 +151,12 @@
 
 (defn Twrite
   [frame state]
-  (error! "not implemented"))
+  (let [stat (fid->stat @state (:fid frame))
+        write-fn (:write-fn stat)]
+    (if write-fn
+      (let [bytes-written (write-fn stat frame state)]
+        (state! {:reply {:count bytes-written}}))
+      (error! "not implemented"))))
 
 (defn Tclunk
   [frame state]
