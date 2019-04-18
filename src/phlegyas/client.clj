@@ -1,4 +1,9 @@
-(ns phlegyas.client)
+(ns phlegyas.client
+  (:require [clojure.set :as sets]
+            [manifold.stream :as s]
+            [phlegyas.util :refer :all]
+            [phlegyas.types :refer :all]
+            [phlegyas.frames :refer :all]))
 
 (defn next-available-value
   "Function for use with atomic swap, to find next value not
@@ -22,3 +27,17 @@
         (swap! vals (fn [x] (disj x clunk)))
         (let [[old new] (swap-vals! vals (fn [x] (conj x (next-available-value x))))]
           (first (sets/difference new old)))))))
+
+(defn client!
+  [in out]
+  (let [state (atom {:fidpool (numeric-pool)
+                     :tagpool (numeric-pool)})
+        incoming-frame-stream (s/stream)
+        outgoing-frame-stream (s/stream)
+        uuid (keyword (uuid!))
+        _ (frame-assembler in incoming-frame-stream)]
+    (s/connect-via outgoing-frame-stream #(s/put! out (assemble-packet %)) out)))
+
+(defn handshake
+  [tag requested-message-size]
+  (assemble-packet {:frame :Tversion :tag tag :msize requested-message-size :version protocol-version}))
