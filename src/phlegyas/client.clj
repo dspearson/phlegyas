@@ -1,6 +1,7 @@
 (ns phlegyas.client
   (:require [clojure.set :as sets]
             [manifold.stream :as s]
+            [aleph.tcp :as tcp]
             [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
             [phlegyas.frames :refer :all]))
@@ -30,14 +31,22 @@
 
 (defn client!
   [in out]
-  (let [state (atom {:fidpool (numeric-pool)
+  (let [state (atom {:msize max-message-size
+                     :fidpool (numeric-pool)
                      :tagpool (numeric-pool)})
         incoming-frame-stream (s/stream)
         outgoing-frame-stream (s/stream)
         uuid (keyword (uuid!))
         _ (frame-assembler in incoming-frame-stream)]
-    (s/connect-via outgoing-frame-stream #(s/put! out (assemble-packet %)) out)))
+    (s/connect-via out #(s/put! out (assemble-packet %)) in)))
 
-(defn handshake
-  [tag requested-message-size]
-  (assemble-packet {:frame :Tversion :tag tag :msize requested-message-size :version protocol-version}))
+(defn dial
+  [host port]
+  (tcp/client {:host host :port port}))
+
+(defn connect
+  [host port]
+  (let [in (s/stream)
+        client @(dial host port)]
+    (client! client in)
+    in))
