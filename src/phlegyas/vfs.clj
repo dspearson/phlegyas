@@ -5,7 +5,7 @@
             [phlegyas.util :refer :all]
             [phlegyas.transformers :refer :all]
             [clojure.string :as string]
-            [clojure.set :as set]
+            [clojure.set :as sets]
             [primitive-math :as math
              :refer [int->uint short->ushort
                      uint->int ushort->short
@@ -340,7 +340,7 @@
 (defn allowed-op?
   [permissions operation]
   (let [access-level (operation role-access)]
-    (set/subset? access-level permissions)))
+    (sets/subset? access-level permissions)))
 
 (defn role-resolve
   [stat role]
