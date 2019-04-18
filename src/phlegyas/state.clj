@@ -83,7 +83,7 @@
         (if (empty? wname-paths)
           (error! "path cannot be walked")
           (state! {:update (fn [x] (-> x
-                                      (add-fid newfid)
+                                      (add-fid newfid) ;; FIXME: [1]
                                       (add-mapping newfid fs-name (last wname-paths))))
                    :reply {:nwqids qids}}))))))
 
@@ -211,3 +211,6 @@
              (fn [result]
                (when-not (identical? ::drained result)
                  (d/recur))))))
+
+;; [1] walk man page says newfid should only be associated if ALL
+;; elements were successfully walked, so this is incorrect behaviour.
