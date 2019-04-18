@@ -80,10 +80,16 @@
                :reply {:nwqids []}})
       (let [wname-paths (walk-path fs path wnames)
             qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
-        (if (empty? wname-paths)
+        (cond
+          (empty? wname-paths)
           (error! "path cannot be walked")
+
+          (< (count wname-paths) (count wnames))
+          (state! {:reply {:nwqids qids}})
+
+          :else
           (state! {:update (fn [x] (-> x
-                                      (add-fid newfid) ;; FIXME: [1]
+                                      (add-fid newfid)
                                       (add-mapping newfid fs-name (last wname-paths))))
                    :reply {:nwqids qids}}))))))
 
@@ -211,6 +217,3 @@
              (fn [result]
                (when-not (identical? ::drained result)
                  (d/recur))))))
-
-;; [1] walk man page says newfid should only be associated if ALL
-;; elements were successfully walked, so this is incorrect behaviour.
