@@ -292,8 +292,8 @@
   (assoc state :mapping (assoc (:mapping state) fid (into (get (:mapping state) fid) data))))
 
 (defn add-fid
-  [state fid]
-  (assoc state :fids (set (conj (:fids state) fid))))
+  [state fid tag]
+  (assoc state :fids (assoc (:fids state) fid {:added-by tag})))
 
 (defn add-role
   [state fsid uid gid]

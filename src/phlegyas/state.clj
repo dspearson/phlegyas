@@ -54,7 +54,7 @@
         gid (:uname frame)]
     (state! {:update (fn [x] (-> x
                                 (add-fs fs)
-                                (add-fid fid)
+                                (add-fid fid (:uuid frame))
                                 (add-mapping fid fsid path)
                                 (add-role fsid uid gid)))
              :reply (path->qid fs (:root-path fs))})))
@@ -75,7 +75,7 @@
         path (:path mapping)]
     (if (= (count wnames) 0)
       (state! {:update (fn [x] (-> x
-                                  (add-fid newfid)
+                                  (add-fid newfid (:uuid frame))
                                   (add-mapping newfid fs-name path)))
                :reply {:nwqids []}})
       (let [wname-paths (walk-path fs path wnames)
@@ -89,7 +89,7 @@
 
           :else
           (state! {:update (fn [x] (-> x
-                                      (add-fid newfid)
+                                      (add-fid newfid (:uuid frame))
                                       (add-mapping newfid fs-name (last wname-paths))))
                    :reply {:nwqids qids}}))))))
 
@@ -168,7 +168,7 @@
   [frame state]
   (let [current-state @state
         fid (:fid frame)]
-    (state! {:update (fn [x] (-> (into x {:fids (disj (:fids x) fid)
+    (state! {:update (fn [x] (-> (into x {:fids (dissoc (:fids x) fid)
                                          :mapping (dissoc (:mapping x) fid)})))})))
 
 (defn Tremove
@@ -199,7 +199,10 @@
   acknowledgement of a previous action has been sent. Therefore, this can be
   executed asynchronously inside a future."
   [frame state out]
-  (s/put! out (((:frame frame) state-handlers) frame state)))
+  (log/info "in: "frame)
+  (let [reply (((:frame frame) state-handlers) frame state)]
+    (log/info "out: " reply)
+    (s/put! out (((:frame frame) state-handlers) frame state))))
 
 (defn consume-with-state [in out state f]
   (d/loop []
