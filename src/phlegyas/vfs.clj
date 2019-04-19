@@ -128,7 +128,13 @@
                 :size size
                 :children #{}
                 :parent (if (nil? parent) path parent)
-                :contents read-fn})))
+                :read-fn read-fn})))
+
+(defn fetch-data
+  "A generic method for fetching data from files. Assumes nothing."
+  [frame state & {:keys [stat]}]
+  (let [read-fn (:read-fn stat)]
+    (read-fn stat frame state)))
 
 (defn read-dir
   [fs stat]

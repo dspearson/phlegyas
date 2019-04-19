@@ -149,10 +149,10 @@
 
       :file (if (and (not= 0 (:length stat)) (>= offset (:length stat))) ; if offset >= length, it means that we are
               (state! {:reply {:data nil}})                              ; reading beyond end of file, so return no data.
-              (let [data ((:read-fn stat) stat frame state)]             ; else, read file via calling the read-fn.
+              (let [data (fetch-data frame state :stat stat)]            ; else, read file.
                 (state! {:reply {:data data}})))
 
-      :append (let [data ((:read-fn stat) stat frame state)]
+      :append (let [data (fetch-data frame state :stat stat)]
                   (state! {:reply {:data data}})))))
 
 (defn Twrite
@@ -202,7 +202,7 @@
   (log/info "in: "frame)
   (let [reply (((:frame frame) state-handlers) frame state)]
     (log/info "out: " reply)
-    (s/put! out (((:frame frame) state-handlers) frame state))))
+    (s/put! out reply)))
 
 (defn consume-with-state [in out state f]
   (d/loop []
