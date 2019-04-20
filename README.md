@@ -40,6 +40,4 @@ This should aid in the development cycle.
 
 The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content.
 
-There's also a few examples of callback / stream usage in the core and state namespace.
-
 When hitting inevitable issues, a simple call to `(r)` again will reset the service back to a clean state, ready to continue on your adventures.
