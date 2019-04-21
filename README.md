@@ -1,20 +1,18 @@
 # Plan 9 Filesystem Protocol, as implemented in Clojure.
 
 ```clj
-[phlegyas "0.1.3-SNAPSHOT"]
+[phlegyas "0.1.3"]
 ```
 
-*WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!*
+*WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!**
+
+*This is a preview release, but with enough functionality added that it may be useful, so it's tagged.*
 
 The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space](https://9fans.github.io/plan9port/man/man9/) project.
 
 I have copied the test resources from [droyo's styx package](https://github.com/droyo/styx/), credit due for making it available.
 
 Run `lein test` to verify things work as they should. Currently, 100% of the provided framedumps are successfully handled, hopefully indicating that this is fully up to spec.
-
-"LISP programmers know the value of everything and the cost of nothing." Thus, I have not measured performance of the encode/decode in any serious manner, and the example state machine is a dumb single loop, likely unsuitable for any serious use. However, the principles of how to piece things together should be evident, and the design entirely customisable.
-
-Note the field names in `types.clj`. The `assemble-packet` function will take a map of these and create a byte-array for you. `disassemble-packet` will do the reverse.
 
 ### Development Notes
 
