@@ -55,7 +55,7 @@
                                     (add-fs root-fs)
                                     (add-fid frame-fid frame-tag)
                                     (add-mapping frame-fid root-fs-id root-path)
-                                    (add-role root-fs-id frame-uid frame-gid)))
+                                    (add-role root-fs-id frame-uname frame-uname)))
                  :reply (path->qid root-fs root-path)})))))
 
 (defn Tflush
@@ -160,7 +160,12 @@
 
 (defn Tremove
   [frame state]
-  (error! "not implemented"))
+  (with-frame-bindings frame
+    (do
+      (let [stat (fid->stat current-state frame-fid)
+            dir-stat (fid->stat current-state (:parent stat))
+            new-children (disj (:children dir-stat) (:qid-path stat))]
+        (state! {:update (fn [x] (update-stat x (:parent stat){:children new-children}))})))))
 
 (defn Tstat
   [frame state]
