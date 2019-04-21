@@ -8,6 +8,8 @@
             [phlegyas.types :refer :all]
             [phlegyas.frames :refer :all]))
 
+;; an example implementation of a client.
+
 (defn next-available-value
   "Function for use with atomic swap, to find next value not
   belonging to the set."
@@ -40,6 +42,9 @@
     (-> frame (assoc :tag tag) assemble-packet)))
 
 (defn transactional-actor
+  "Returns a function that takes in frames and returns deferreds
+  representing the response over the network. Frames do not
+  require tags."
   [x]
   (fn [y]
     (let [response (d/deferred)]
@@ -47,6 +52,9 @@
       response)))
 
 (defn client!
+  "This example client returns a function that will take in frames (without tags)
+  and will automatically handle matching responses for you. Calls to the returned
+  function are a deferred that is delivered when the response is received."
   [in]
   (let [tagpool (numeric-pool)
         incoming-frame-stream (s/stream)
@@ -61,11 +69,53 @@
     (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % in-flight tagpool)) in)
     (transactional-actor outgoing-frame-stream)))
 
-(defn dial
-  [host port]
-  (tcp/client {:host host :port port}))
-
 (defn connect
   [host port]
-  (let [client @(dial host port)]
-    (client! client)))
+  {:connection (client! @(tcp/client {:host host :port port}))
+   :state (atom {})})
+
+(defn attach-filesystem
+  "Takes a connection and a username, and optionally a filesystem name."
+  ([x username]
+   (attach-filesystem x username ""))
+
+  ([x username fs-name]
+   (let [state (:state x)
+         fid-pool (:fid-pool @state)
+         attach-fid (fid-pool)
+         connection (:connection x)
+         response @(connection {:frame :Tattach :uname username :aname fs-name :fid attach-fid :afid nofid})]
+     (if (= (:frame response) :Rattach)
+       (do
+         (swap! state (fn [x] (assoc x :fids (assoc (:fids x) attach-fid {:name "/" :filesystem fs-name}))))
+         attach-fid)
+       (do
+         (fid-pool :clunk attach-fid)
+         false)))))
+
+(defn negotiate-version
+  [x]
+  (let [connection (:connection x)
+        state (:state x)
+        response @(connection {:frame :Tversion :msize max-message-size :version protocol-version})]
+    (reset! state {}) ;; a version request restarts a connection.
+    (if (= (:frame response) :Rversion)
+      (do
+        (swap! state assoc :msize (:msize response) :version (:version response) :fid-pool (numeric-pool))
+        (:version response))
+      false)))
+
+(defn clone-fid
+  [x fs-handle]
+  (let [connection (:connection x)
+        state (:state x)
+        fid-pool (:fid-pool @state)
+        requested-fid (fid-pool)
+        response @(connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames []})]
+    (if (= (:frame response) :Rwalk)
+      (do
+        (swap! state (fn [x] (assoc x :fids (assoc (:fids x) requested-fid (get (:fids x) fs-handle)))))
+        requested-fid)
+      (do
+        (fid-pool :clunk requested-fid)
+        false))))
