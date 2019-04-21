@@ -41,3 +41,7 @@ This should aid in the development cycle.
 The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content.
 
 When hitting inevitable issues, a simple call to `(r)` again will reset the service back to a clean state, ready to continue on your adventures.
+
+### Example Application
+
+I have created a [small bit of standalone code](https://github.com/dspearson/phlegyas-example) to illustrate how to use this library in your applications.
