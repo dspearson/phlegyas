@@ -146,7 +146,7 @@
         response @(connection {:frame :Topen :fid fid :iomode iomode})]
     (:iounit response)))
 
-(defn read-fid
+(defn read-fid-partial
   [x fid offset iounit]
   (let [connection (:connection x)
         response @(connection {:frame :Tread :fid fid :offset offset :count iounit})]
@@ -163,11 +163,11 @@
         true)
       false)))
 
-(defn read-entire-fid
+(defn read-fid
   [x fid iounit]
   (loop [offset 0
          buf []]
-    (let [data (read-fid x fid offset iounit)]
+    (let [data (read-fid-partial x fid offset iounit)]
       (if (empty? data)
         (-> buf flatten pack)
         (recur (+ offset (count data)) (conj buf data))))))
@@ -176,7 +176,7 @@
   [x fid]
   (let [fid-clone (clone-fid x fid)
         iounit (open-fid x fid-clone 0)
-        data (read-entire-fid x fid-clone iounit)
+        data (read-fid x fid-clone iounit)
         _ (clunk-fid x fid-clone)
         layout (subvec (:Rstat frame-layouts) 2)
         buf (wrap-buffer data)]
