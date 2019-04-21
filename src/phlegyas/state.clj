@@ -106,44 +106,41 @@
 
 (defn Tread
   [frame state]
-  (let [offset (:offset frame)
-        byte-count (:count frame)
-        fid (:fid frame)
-        mapping (fid->mapping @state fid)
-        fs ((:filesystem mapping) (:fs-map @state))
-        stat (path->stat fs (:path mapping))
-        typ (stat-type stat)]
-    (case typ
+  (with-frame-bindings frame
+    (do
+      (let [stat (path->stat fs (:path mapping))
+            typ (stat-type stat)]
+        (case typ
 
-      :dir (if (and
-                (> offset 0)
-                (not (= offset (:offset mapping))))
-             ; reads of directories must begin at offset 0, or the previous offset +
-             ; the last returned byte count, for followup reads of incomplete data.
-             ; i.e., either offset = 0, or offset = previous offset + previous count.
-             (error! "cannot seek in directories!")
+          :dir (if (and
+                    (> frame-offset 0)
+                    (not (= frame-offset (:offset mapping))))
+                 ; reads of directories must begin at offset 0, or the previous offset +
+                 ; the last returned byte count, for followup reads of incomplete data.
+                 ; i.e., either offset = 0, or offset = previous offset + previous count.
+                 (error! "cannot seek in directories!")
 
-             (let [dirpaths (if (= offset 0)              ; read directory from beginning...
-                              (:children stat)            ; so return all children.
-                              (:paths-remaining mapping)) ; or else, we are continuing a previous read call.
+                 (let [dirpaths (if (= frame-offset 0)        ; read directory from beginning...
+                                  (:children stat)            ; so return all children.
+                                  (:paths-remaining mapping)) ; or else, we are continuing a previous read call.
 
                    ; `directory-reader` returns a vector, first the data, and second, any remaining paths not visited.
                    ; this can happen if the read call on a directory is larger than the size allowed in a message,
                    ; and read calls can only return integral stat entries, so we need to store the list of paths that
                    ; were not visited in this iteration, so that followup reads can continue where we left off.
-                   [data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) byte-count)
+                   [data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) frame-count)
                    delivered-byte-count (count data)]
-               (state! {:update (fn [x] (update-mapping x fid {:offset (+ offset (count data))
-                                                              :paths-remaining paths-remaining}))
+               (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count data))
+                                                                    :paths-remaining paths-remaining}))
                         :reply {:data data}})))
 
-      :file (if (and (not= 0 (:length stat)) (>= offset (:length stat))) ; if offset >= length, it means that we are
-              (state! {:reply {:data nil}})                              ; reading beyond end of file, so return no data.
-              (let [data (fetch-data frame state :stat stat)]            ; else, read file.
+      :file (if (and (not= 0 (:length stat)) (>= frame-offset (:length stat))) ; if offset >= length, it means that we are
+              (state! {:reply {:data nil}})                                    ; reading beyond end of file, so return no data.
+              (let [data (fetch-data frame state :stat stat)]                  ; else, read file.
                 (state! {:reply {:data data}})))
 
       :append (let [data (fetch-data frame state :stat stat)]
-                  (state! {:reply {:data data}})))))
+                (state! {:reply {:data data}})))))))
 
 (defn Twrite
   [frame state]
@@ -156,10 +153,10 @@
 
 (defn Tclunk
   [frame state]
-  (let [current-state @state
-        fid (:fid frame)]
-    (state! {:update (fn [x] (-> (into x {:fids (dissoc (:fids x) fid)
-                                         :mapping (dissoc (:mapping x) fid)})))})))
+  (with-frame-bindings frame
+    (do
+      (state! {:update (fn [x] (-> (into x {:fids (dissoc (:fids x) frame-fid)
+                                           :mapping (dissoc (:mapping x) frame-fid)})))}))))
 
 (defn Tremove
   [frame state]
@@ -167,14 +164,10 @@
 
 (defn Tstat
   [frame state]
-  (let [current-state @state
-        fid (:fid frame)
-        mapping (get (:mapping current-state) fid)
-        fs-name (:filesystem mapping)
-        fs (fs-name (:fs-map current-state))
-        path (:path mapping)
-        stat (stat-file fs path)]
-    (state! {:reply stat})))
+  (with-frame-bindings frame
+    (do
+      (let [stat (stat-file fs path)]
+        (state! {:reply stat})))))
 
 (defn Twstat
   [frame state]
