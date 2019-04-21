@@ -75,7 +75,7 @@
         (if (< (count x) l)
           x
           (do
-            (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet (assoc :uuid (uuid!))))
+            (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet))
             (recur (subvec x l))))))))
 
 (defn frame-assembler

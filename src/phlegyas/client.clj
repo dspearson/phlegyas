@@ -1,6 +1,8 @@
 (ns phlegyas.client
   (:require [clojure.set :as sets]
             [manifold.stream :as s]
+            [taoensso.timbre :as log]
+            [manifold.deferred :as d]
             [aleph.tcp :as tcp]
             [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
@@ -29,16 +31,34 @@
         (let [[old new] (swap-vals! vals (fn [x] (conj x (next-available-value x))))]
           (first (sets/difference new old)))))))
 
+(defn tag-and-assemble
+  [x deferred-responses tagpool]
+  (let [frame (:frame x)
+        response (:response x)
+        tag (tagpool)]
+    (swap! deferred-responses (fn [x] (assoc x (keywordize tag) response)))
+    (-> frame (assoc :tag tag) assemble-packet)))
+
 (defn client!
-  [in out]
-  (let [state (atom {:msize max-message-size
-                     :fidpool (numeric-pool)
-                     :tagpool (numeric-pool)})
+  [in]
+  (let [tagpool (numeric-pool)
         incoming-frame-stream (s/stream)
         outgoing-frame-stream (s/stream)
-        uuid (keyword (uuid!))
+        deferred-responses (atom {})
         _ (frame-assembler in incoming-frame-stream)]
-    (s/connect-via out #(s/put! out (assemble-packet %)) in)))
+    (s/consume (fn [x] (let [tag (:tag x)
+                            deferred-response ((keywordize tag) @deferred-responses)]
+                        (swap! deferred-responses dissoc tag)
+                        (tagpool :clunk tag)
+                        (d/success! deferred-response x))) incoming-frame-stream)
+    (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % deferred-responses tagpool)) in)
+    outgoing-frame-stream))
+
+(defn transaction
+  [client frame]
+  (let [response (d/deferred)]
+    (s/put! client {:response response :frame frame})
+    response))
 
 (defn dial
   [host port]
@@ -46,7 +66,5 @@
 
 (defn connect
   [host port]
-  (let [in (s/stream)
-        client @(dial host port)]
-    (client! client in)
-    in))
+  (let [client @(dial host port)]
+    (client! client)))
