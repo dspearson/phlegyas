@@ -73,11 +73,8 @@
                  :reply {:nwqids []}})
         (let [wname-paths (walk-path fs path frame-wnames)
               qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
-          (cond
-            (< (count wname-paths) (count frame-wnames))
+          (if (< (count wname-paths) (count frame-wnames))
             (state! {:reply {:nwqids qids}})
-
-            :else
             (state! {:update (fn [x] (-> x
                                         (add-fid frame-newfid frame-tag)
                                         (add-mapping frame-newfid fs-name (last wname-paths))))
@@ -101,13 +98,23 @@
   [frame state]
   (with-frame-bindings frame
     (do
-      (let [new-file (synthetic-file frame-name #'example-function-for-files)]
+      (let [new-stat (create-synthetic-file frame-name #'example-function-for-files)
+            parent-stat (fid->stat current-state frame-fid)
+            parent-path (:parent parent-stat)
+            file-path (next-available-path fs)]
         (state! {:update (fn [x]
-                           (update-in x [:fs-map fs-name]
-                                      (-> fs (insert-file! path new-file))))
-                 :reply {:qid-type (:qid-type new-file)
-                         :qid-vers (:qid-vers new-file)
-                         :qid-path (:qid-path new-file)}})))))
+                           (-> x
+                               (assoc-in [:fs-map fs-name :files file-path]
+                                         (assoc new-stat
+                                                :qid-path file-path
+                                                :parent parent-path))
+                               (update-in [:fs-map fs-name :files parent-path]
+                                          (fn [y]
+                                            (assoc y :children (conj (:children y) file-path))))))
+                 :reply {:qid-type (:qid-type new-stat)
+                         :qid-vers (:qid-vers new-stat)
+                         :qid-path file-path
+                         :iounit (iounit!)}})))))
 
 (defn Tread
   [frame state]
@@ -170,7 +177,7 @@
       (let [stat (fid->stat current-state frame-fid)
             dir-stat (fid->stat current-state (:parent stat))
             new-children (disj (:children dir-stat) (:qid-path stat))]
-        (state! {:update (fn [x] (update-stat x (:parent stat){:children new-children}))})))))
+        (state! {:update (fn [x] (update-stat x (:parent stat) {:children new-children}))})))))
 
 (defn Tstat
   [frame state]
