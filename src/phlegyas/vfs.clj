@@ -110,7 +110,7 @@
         ftyp (if (directory? fh) (:dir qt-mode) (:file qt-mode))
         size (stat-size fname uid gid muid)]
     (map->stat {:qid-type ftyp
-                :qid-vers (hash mtime)
+                :qid-vers (if (= file "/") 0 (hash mtime))
                 :qid-path path
                 :permissions (permission-set fh)
                 :type 0

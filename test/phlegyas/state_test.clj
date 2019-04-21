@@ -26,7 +26,7 @@
 (def Tversion-reply {:frame :Rversion :tag 65535 :msize 2147483647 :version "9P2000"})
 
 (def Tattach-frame {:frame :Tattach :tag 0 :fid 0 :afid nofid :uname "dsp" :aname "dsp"})
-(def Tattach-reply {:frame :Rattach :tag 0 :qid-type -128 :qid-vers 954407235 :qid-path 0})
+(def Tattach-reply {:frame :Rattach :tag 0 :qid-type -128 :qid-vers 0 :qid-path 0})
 
 (def Twalk-frame {:frame :Twalk :tag 0 :fid 0 :newfid 1 :wnames []})
 (def Twalk-reply {:frame :Rwalk :tag 0 :nwqids []})
