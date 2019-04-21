@@ -13,8 +13,8 @@
 (def global-connections (atom {}))
 
 (defn server!
-  [in out]
-  (let [state (atom {:root-filesystem #'example-filesystem!})
+  [in out & {:keys [root-filesystem-constructor]}]
+  (let [state (atom {:root-filesystem (or root-filesystem-constructor #'example-filesystem!)})
         incoming-frame-stream (s/stream)
         outgoing-frame-stream (s/stream)
         uuid (keyword (uuid!))
