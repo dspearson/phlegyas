@@ -199,9 +199,9 @@
   acknowledgement of a previous action has been sent. Therefore, this can be
   executed asynchronously inside a future."
   [frame state out]
-  (log/info "in: "frame)
+  (log/debug "in: "frame)
   (let [reply (((:frame frame) state-handlers) frame state)]
-    (log/info "out: " reply)
+    (log/debug "out: " reply)
     (s/put! out reply)))
 
 (defn consume-with-state [in out state f]
