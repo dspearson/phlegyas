@@ -18,6 +18,7 @@
          ~'frame-nwqids (:nwqids frame#)
          ~'frame-wnames (:wnames frame#)
          ~'frame-iounit (:iounit frame#)
+         ~'frame-iomode (:iomode frame#)
          ~'frame-count (:count frame#)
          ~'frame-ssize (:ssize frame#)
          ~'frame-size (:size frame#)

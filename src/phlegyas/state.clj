@@ -102,7 +102,15 @@
 
 (defn Tcreate
   [frame state]
-  (error! "not implemented"))
+  (with-frame-bindings frame
+    (do
+      (let [new-file (synthetic-file frame-name #'example-function-for-files)]
+        (state! {:update (fn [x]
+                           (update-in x [:fs-map fs-name]
+                                      (-> fs (insert-file! path new-file))))
+                 :reply {:qid-type (:qid-type new-file)
+                         :qid-vers (:qid-vers new-file)
+                         :qid-path (:qid-path new-file)}})))))
 
 (defn Tread
   [frame state]
