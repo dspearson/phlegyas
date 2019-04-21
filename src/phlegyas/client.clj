@@ -186,6 +186,14 @@
         (let [y (into {} (for [elem layout] {elem ((elem buffer-functions) buf)}))]
           (recur (assoc stats (:qid-path y) y)))))))
 
+(defn open-and-read
+  [x fid]
+  (let [fid-clone (clone-fid x fid)
+        io-unit (open-fid x fid-clone 0)
+        data (read-fid x fid-clone io-unit)
+        _ (clunk-fid x fid-clone)]
+    data))
+
 (defn lsdir
   [x fid]
   (let [data (read-dir x fid)]
