@@ -1,2 +1,9 @@
-.nrepl-port
-target/
+pom.xml*
+*jar
+lib
+classes
+doc
+.lein*
+target/**
+.nrepl*
+/doc
