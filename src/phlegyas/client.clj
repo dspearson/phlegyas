@@ -119,3 +119,75 @@
       (do
         (fid-pool :clunk requested-fid)
         false))))
+
+(defn walk-fid
+  [x fs-handle paths]
+  (let [connection (:connection x)
+        state (:state x)
+        fid-pool (:fid-pool @state)
+        requested-fid (fid-pool)
+        response @(connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames paths})]
+    (if (and (= (:frame response) :Rwalk) (= (count (:nwqids response)) (count paths)))
+      (do
+        (swap! state (fn [y] (assoc y :fids (assoc (:fids y) requested-fid
+                                                  {:name (let [parent (:name (get (:fids @state) fs-handle))]
+                                                               (str (if (= parent "/") "" parent)
+                                                                    "/"
+                                                                    (clojure.string/join "/" paths)))
+                                                   :filesystem (:filesystem (get (:fids @state) fs-handle))}))))
+        requested-fid)
+      (do
+        (fid-pool :clunk requested-fid)
+        false))))
+
+(defn open-fid
+  [x fid iomode]
+  (let [connection (:connection x)
+        response @(connection {:frame :Topen :fid fid :iomode iomode})]
+    (:iounit response)))
+
+(defn read-fid
+  [x fid offset iounit]
+  (let [connection (:connection x)
+        response @(connection {:frame :Tread :fid fid :offset offset :count iounit})]
+    (:data response)))
+
+(defn clunk-fid
+  [x fid]
+  (let [connection (:connection x)
+        state (:state x)
+        response @(connection {:frame :Tclunk :fid fid})]
+    (if (= (:frame response) :Rclunk)
+      (do
+        (swap! state (fn [y] (assoc y :fids (dissoc (:fids y) fid))))
+        true)
+      false)))
+
+(defn read-entire-fid
+  [x fid iounit]
+  (loop [offset 0
+         buf []]
+    (let [data (read-fid x fid offset iounit)]
+      (if (empty? data)
+        (-> buf flatten pack)
+        (recur (+ offset (count data)) (conj buf data))))))
+
+(defn read-dir
+  [x fid]
+  (let [fid-clone (clone-fid x fid)
+        iounit (open-fid x fid-clone 0)
+        data (read-entire-fid x fid-clone iounit)
+        _ (clunk-fid x fid-clone)
+        layout (subvec (:Rstat frame-layouts) 2)
+        buf (wrap-buffer data)]
+    (loop [stats {}]
+      (if (= (.remaining buf) 0)
+        stats
+        (let [y (into {} (for [elem layout] {elem ((elem buffer-functions) buf)}))]
+          (recur (assoc stats (:qid-path y) y)))))))
+
+(defn lsdir
+  [x fid]
+  (let [data (read-dir x fid)]
+    (for [k (keys data)]
+      (:name (get data k)))))
