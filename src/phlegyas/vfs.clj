@@ -206,7 +206,7 @@
                              :or {owner "root"
                                   group "root"
                                   mode 0400
-                                  write-fn nil
+                                  write-fn function-call
                                   additional-data nil
                                   append false}}]
   (synthetic-file filename owner group mode function-call write-fn metadata append))

@@ -79,3 +79,8 @@
   "Count the number of bytes in a string."
   [s]
   (count (^Bytes .getBytes ^String s "UTF-8")))
+
+(defn parse-int
+  "Coerce a string to integer."
+  [s]
+  (Integer. (re-find  #"\d+" s)))
