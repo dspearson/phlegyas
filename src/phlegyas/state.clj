@@ -74,9 +74,6 @@
         (let [wname-paths (walk-path fs path frame-wnames)
               qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
           (cond
-            (empty? wname-paths)
-            (error! "path cannot be walked")
-
             (< (count wname-paths) (count frame-wnames))
             (state! {:reply {:nwqids qids}})
 
