@@ -32,33 +32,34 @@
           (first (sets/difference new old)))))))
 
 (defn tag-and-assemble
-  [x deferred-responses tagpool]
+  [x in-flight tagpool]
   (let [frame (:frame x)
         response (:response x)
         tag (tagpool)]
-    (swap! deferred-responses (fn [x] (assoc x (keywordize tag) response)))
+    (swap! in-flight (fn [x] (assoc x (keywordize tag) response)))
     (-> frame (assoc :tag tag) assemble-packet)))
+
+(defn transactional-actor
+  [x]
+  (fn [y]
+    (let [response (d/deferred)]
+      (s/put! x {:response response :frame y})
+      response)))
 
 (defn client!
   [in]
   (let [tagpool (numeric-pool)
         incoming-frame-stream (s/stream)
         outgoing-frame-stream (s/stream)
-        deferred-responses (atom {})
+        in-flight (atom {})
         _ (frame-assembler in incoming-frame-stream)]
     (s/consume (fn [x] (let [tag (:tag x)
-                            deferred-response ((keywordize tag) @deferred-responses)]
-                        (swap! deferred-responses dissoc tag)
+                            response ((keywordize tag) @in-flight)]
+                        (swap! in-flight dissoc tag)
                         (tagpool :clunk tag)
-                        (d/success! deferred-response x))) incoming-frame-stream)
-    (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % deferred-responses tagpool)) in)
-    outgoing-frame-stream))
-
-(defn transaction
-  [client frame]
-  (let [response (d/deferred)]
-    (s/put! client {:response response :frame frame})
-    response))
+                        (d/success! response x))) incoming-frame-stream)
+    (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % in-flight tagpool)) in)
+    (transactional-actor outgoing-frame-stream)))
 
 (defn dial
   [host port]
