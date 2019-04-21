@@ -1,15 +1,22 @@
 (ns phlegyas.util
   (:import java.nio.ByteBuffer))
 
+;; there's probably a much more clever way of doing this, but I gave up after
+;; a few minutes after trying to look up how to dynamically create let bindings.
+;; (for [elem (keys buffer-operator)]
+;;   (symbol (str "frame-" (subs (str elem) 1))))
 (defmacro with-frame-bindings
   [data body]
+  (declare state)
   `(let [frame# ~data
-         ~'frame-type (:frame frame#)
+         ~'current-state (if (instance? clojure.lang.Atom ~'state) ~'@state {})
+         ~'frame-ftype (:frame frame#)
          ~'frame-tag (:tag frame#)
          ~'frame-qid-type (:qid-type frame#)
          ~'frame-qid-vers (:qid-vers frame#)
          ~'frame-qid-path (:qid-path frame#)
          ~'frame-nwqids (:nwqids frame#)
+         ~'frame-wnames (:wnames frame#)
          ~'frame-iounit (:iounit frame#)
          ~'frame-count (:count frame#)
          ~'frame-ssize (:ssize frame#)
@@ -28,8 +35,17 @@
          ~'frame-fid (:fid frame#)
          ~'frame-ename (:ename frame#)
          ~'frame-version (:version frame#)
-         ~'frame-msize (:msizez frame#)]
-       ~@body))
+         ~'frame-afid (:afid frame#)
+         ~'frame-aname (:aname frame#)
+         ~'frame-oldtag (:oldtag frame#)
+         ~'frame-newfid (:newfid frame#)
+         ~'frame-msize (:msize frame#)
+         ~'mapping (or (get (:mapping ~'current-state) ~'frame-fid) {})
+         ~'fs-name (:filesystem ~'mapping)
+         ~'fs (get (:fs-map ~'current-state) ~'fs-name)
+         ~'fsid (:id ~'fs)
+         ~'path (:path ~'mapping)]
+     ~@body))
 
 (defn wrap-buffer
   "Wraps a byte-array in a Java ByteBuffer, using little-endian

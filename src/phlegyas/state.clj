@@ -30,15 +30,15 @@
 
 (defn Tversion
   [frame state]
-  (let [requested-message-size (:msize frame)
-        version-string (:version frame)]
-    (cond
-      (not (string/starts-with? version-string protocol-version)) (state! {:reply {:version "unknown"}})
-      (<= requested-message-size max-message-size) (state! {:update (fn [x] (assoc x :msize max-message-size))
-                                                            :reply {:version protocol-version}})
-      :else (state! {:update (fn [x] (assoc x :msize max-message-size))
-                     :reply {:version protocol-version
-                             :msize max-message-size}}))))
+  (with-frame-bindings frame
+    (do
+      (cond
+        (not (string/starts-with? frame-version protocol-version)) (state! {:reply {:version "unknown"}})
+        (<= frame-msize max-message-size) (state! {:update (fn [x] (assoc x :msize frame-msize))
+                                                   :reply {:version protocol-version}})
+        :else (state! {:update (fn [x] (assoc x :msize max-message-size))
+                       :reply {:version protocol-version
+                               :msize max-message-size}})))))
 
 (defn Tauth
   [frame state]
@@ -46,18 +46,17 @@
 
 (defn Tattach
   [frame state]
-  (let [fid (:fid frame)
-        fs ((:root-filesystem @state))
-        fsid (:id fs)
-        path (:root-path fs)
-        uid (:uname frame)
-        gid (:uname frame)]
-    (state! {:update (fn [x] (-> x
-                                (add-fs fs)
-                                (add-fid fid (:uuid frame))
-                                (add-mapping fid fsid path)
-                                (add-role fsid uid gid)))
-             :reply (path->qid fs (:root-path fs))})))
+  (with-frame-bindings frame
+    (do
+      (let [root-fs ((:root-filesystem current-state))
+            root-fs-id (:id root-fs)
+            root-path (:root-path root-fs)]
+        (state! {:update (fn [x] (-> x
+                                    (add-fs root-fs)
+                                    (add-fid frame-fid frame-tag)
+                                    (add-mapping frame-fid root-fs-id root-path)
+                                    (add-role root-fs-id frame-uid frame-gid)))
+                 :reply (path->qid root-fs root-path)})))))
 
 (defn Tflush
   [frame state]
@@ -65,50 +64,41 @@
 
 (defn Twalk
   [frame state]
-  (let [current-state @state
-        fid (:fid frame)
-        newfid (:newfid frame)
-        wnames (:wnames frame)
-        mapping (get (:mapping current-state) fid)
-        fs-name (:filesystem mapping)
-        fs (fs-name (:fs-map current-state))
-        path (:path mapping)]
-    (if (= (count wnames) 0)
-      (state! {:update (fn [x] (-> x
-                                  (add-fid newfid (:uuid frame))
-                                  (add-mapping newfid fs-name path)))
-               :reply {:nwqids []}})
-      (let [wname-paths (walk-path fs path wnames)
-            qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
-        (cond
-          (empty? wname-paths)
-          (error! "path cannot be walked")
+  (with-frame-bindings frame
+    (do
+      (if (= (count frame-wnames) 0)
+        (state! {:update (fn [x] (-> x
+                                    (add-fid frame-newfid frame-tag)
+                                    (add-mapping frame-newfid fs-name path)))
+                 :reply {:nwqids []}})
+        (let [wname-paths (walk-path fs path frame-wnames)
+              qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
+          (cond
+            (empty? wname-paths)
+            (error! "path cannot be walked")
 
-          (< (count wname-paths) (count wnames))
-          (state! {:reply {:nwqids qids}})
+            (< (count wname-paths) (count frame-wnames))
+            (state! {:reply {:nwqids qids}})
 
-          :else
-          (state! {:update (fn [x] (-> x
-                                      (add-fid newfid (:uuid frame))
-                                      (add-mapping newfid fs-name (last wname-paths))))
-                   :reply {:nwqids qids}}))))))
+            :else
+            (state! {:update (fn [x] (-> x
+                                        (add-fid frame-newfid frame-tag)
+                                        (add-mapping frame-newfid fs-name (last wname-paths))))
+                     :reply {:nwqids qids}})))))))
 
 (defn Topen
   [frame state]
-  (let [current-state @state
-        fid (:fid frame)
-        mapping (fid->mapping current-state fid)
-        fs ((:filesystem mapping) (:fs-map current-state))
-        path (:path mapping)
-        role (fid->role fid current-state)
-        stat (path->stat fs path)]
-    (if (not (permission-check stat role :oread))
-      (error! "no read permission")
-      (state! {:update (fn [x] (update-mapping x fid {:offset 0}))
-               :reply {:iounit (iounit!)
-                       :qid-type (:qid-type stat)
-                       :qid-vers (:qid-vers stat)
-                       :qid-path (:qid-path stat)}}))))
+  (with-frame-bindings frame
+    (do
+      (let [role (fid->role frame-fid current-state)
+            stat (path->stat fs path)]
+        (if (not (permission-check stat role :oread))
+          (error! "no read permission")
+          (state! {:update (fn [x] (update-mapping x frame-fid {:offset 0}))
+                   :reply {:iounit (iounit!)
+                           :qid-type (:qid-type stat)
+                           :qid-vers (:qid-vers stat)
+                           :qid-path (:qid-path stat)}}))))))
 
 (defn Tcreate
   [frame state]
