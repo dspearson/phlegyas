@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/dspearson/phlegyas.svg?branch=master)](https://travis-ci.org/dspearson/phlegyas)
 
 ```clj
-[phlegyas "0.1.4-SNAPSHOT"]
+[phlegyas "0.1.5-SNAPSHOT"]
 ```
 
 *WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!*
