@@ -10,42 +10,50 @@
 
 ;; an example implementation of a client.
 
-(defn next-available
-  [p]
-  (loop [i 0]
-    (if (not (contains? p i))
-      i
-      (recur (inc i)))))
-
-(defn alloc-val
+(defn next-val
+  "Find the smallest integer not currently in the atomic set, add it to the
+  atomic set, and return the added value."
   [a]
-  (let [[old new] (swap-vals! a (fn [x] (conj x (next-available x))))]
+  (let [next-available (fn [p]
+                         (loop [i 0]
+                           (if (not (contains? p i))
+                             i
+                             (recur (inc i)))))
+        [old new] (swap-vals! a (fn [x] (conj x (next-available x))))]
     (first (sets/difference new old))))
 
-(defn clunk-val
-  [a value]
-  (swap! a (fn [x] (disj x value))))
+(defn disj-val
+  "Remove a value from the atomic set."
+  [a val]
+  (swap! a (fn [x] (disj x val))))
+
+(defn assoc-val
+  "Associate a key with the value in the atomic map."
+  [a key val]
+  (swap! a assoc key val))
 
 (defn dissoc-val
-  [a fid]
-  (swap! a (fn [x] (dissoc x fid))))
+  "Remove a key from the atomic map."
+  [a key]
+  (swap! a (fn [x] (dissoc x key))))
 
 (defn add-child-mapping
-  [connection fid newfid paths]
-  (swap! (:mapping connection) (fn [y] (let [parent (get y fid)
-                                            parent-name (:name parent)
-                                            parent-uname (:uname parent)
-                                            path-prefix (if (= parent "/") "" parent)]
-                                        (assoc y newfid
-                                               {:name (str parent "/" (clojure.string/join "/" paths))
-                                                :uname parent-uname})))))
+  "Adds a new fid that results from a successful walk to the atomic map."
+  [mapping fid newfid paths]
+  (swap! mapping (fn [y] (let [parent (get y fid)
+                              parent-name (:name parent)
+                              parent-uname (:uname parent)
+                              path-prefix (if (= parent "/") "" parent)]
+                          (assoc y newfid
+                                 {:name (str parent "/" (clojure.string/join "/" paths))
+                                  :uname parent-uname})))))
 
 (defn tag-and-assemble
   [x in-flight-requests tagpool]
   (let [frame (:frame x)
         response (:response x)
-        tag (alloc-val tagpool)]
-    (swap! in-flight-requests (fn [x] (assoc x (keywordize tag) response)))
+        tag (next-val tagpool)]
+    (assoc-val in-flight-requests (keywordize tag) response)
     (-> frame (assoc :tag tag) assemble-packet)))
 
 (defn transact
@@ -87,47 +95,46 @@
 
   ([connection uname aname]
    (let [fid-pool (:fid-pool connection)
-         attach-fid (alloc-val fid-pool)
+         attach-fid (next-val fid-pool)
          response @(transact connection {:frame :Tattach :uname uname :aname aname :fid attach-fid :afid nofid})]
      (if (= (:frame response) :Rattach)
        (do
-         (swap! (:mapping connection) assoc attach-fid {:name "/" :uname uname})
+         (assoc-val (:mapping connection) attach-fid {:name "/" :uname uname})
          attach-fid)
        (do
-         (clunk-val fid-pool attach-fid)
+         (disj-val fid-pool attach-fid)
          false)))))
 
 (defn clone-fid
   [connection fs-handle]
   (let [fid-pool (:fid-pool connection)
-        requested-fid (alloc-val fid-pool)
+        requested-fid (next-val fid-pool)
         response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames []})]
     (if (= (:frame response) :Rwalk)
       (do
-        (swap! (:mapping connection) (fn [x] (assoc x requested-fid (get x fs-handle))))
+        (assoc-val (:mapping connection) requested-fid (get (:mapping connection) fs-handle))
         requested-fid)
       (do
-        (clunk-val fid-pool requested-fid)
+        (disj-val fid-pool requested-fid)
         false))))
 
 (defn walk-fid
   [connection fs-handle paths]
   (let [fid-pool (:fid-pool connection)
-        requested-fid (alloc-val fid-pool)
+        requested-fid (next-val fid-pool)
         response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames paths})]
     (if (and (= (:frame response) :Rwalk) (= (count (:nwqids response)) (count paths)))
       (do
-        (add-child-mapping connection fs-handle requested-fid paths)
+        (add-child-mapping (:mapping connection) fs-handle requested-fid paths)
         requested-fid)
       (do
-        (clunk-val fid-pool requested-fid)
+        (disj-val fid-pool requested-fid)
         false))))
 
 (defn open-fid
   [connection fid iomode]
   (let [response @(transact connection {:frame :Topen :fid fid :iomode iomode})]
-    (swap! (:open-fids connection) (fn [x] (assoc x fid {:iomode iomode
-                                                        :iounit (:iounit response)})))
+    (assoc-val (:open-fids connection) fid {:iomode iomode :iounit (:iounit response)})
     (:iounit response)))
 
 (defn read-fid-partial
@@ -140,7 +147,7 @@
   (let [response @(transact connection {:frame :Tclunk :fid fid})]
     (if (= (:frame response) :Rclunk)
       (do
-        (clunk-val (:fid-pool connection) fid)
+        (disj-val (:fid-pool connection) fid)
         (dissoc-val (:open-fids connection) fid)
         (dissoc-val (:mapping connection) fid)
         true)
@@ -196,8 +203,8 @@
         frame-assembler-thread (frame-assembler in incoming-frame-stream)]
     (s/consume (fn [x] (let [tag (:tag x)
                             response ((keywordize tag) @in-flight-requests)]
-                        (swap! in-flight-requests dissoc (keywordize tag))
-                        (clunk-val tagpool tag)
+                        (dissoc-val in-flight-requests (keywordize tag))
+                        (disj-val tagpool tag)
                         (d/success! response x))) incoming-frame-stream)
     (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % in-flight-requests tagpool)) in)
     {:tag-pool tagpool
