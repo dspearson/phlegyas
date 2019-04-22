@@ -8,13 +8,6 @@
             [phlegyas.types :refer :all]
             [phlegyas.frames :refer :all]))
 
-(defmacro with-server [server & body]
-  `(let [server# ~server]
-     (try
-       ~@body
-       (finally
-         (.close ^java.io.Closeable server#)))))
-
 (defn dispatch
   [packet client]
   (s/put! client packet)

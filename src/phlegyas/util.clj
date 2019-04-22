@@ -47,6 +47,15 @@
          ~'path (:path ~'mapping)]
      ~@body))
 
+(defmacro with-server
+  "Helper macro for tests and one-off connections."
+  [server & body]
+  `(let [server# ~server]
+     (try
+       ~@body
+       (finally
+         (.close ^java.io.Closeable server#)))))
+
 (defn conj-val
   "Remove a value from an atomic set."
   [a val]
