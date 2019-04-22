@@ -106,8 +106,8 @@
             file-path (next-available-path fs)]
         (state! {:update (fn [x]
                            (-> x
-                               (update-in [:fs-map fs-name :files file-path]
-                                          (fn [x] ( x {:qid-path file-path :parent parent-path})))
+                               (assoc-in [:fs-map fs-name :files file-path]
+                                         (into new-stat {:qid-path file-path :parent parent-path}))
                                (update-in [:fs-map fs-name :files parent-path]
                                           (fn [y] (assoc y :children (conj (:children y) file-path))))))
                  :reply {:qid-type (:qid-type new-stat)
@@ -192,7 +192,7 @@
   [frame connection]
   (with-frame-bindings frame
     (do
-      (error! "not implemented"))))
+      (state! {:reply {}}))))
 
 (def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
