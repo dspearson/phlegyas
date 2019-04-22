@@ -7,8 +7,8 @@
 ;;   (symbol (str "frame-" (subs (str elem) 1))))
 (defmacro with-frame-bindings
   [data body]
-  (declare state)
   `(let [frame# ~data
+         ~'state (:state ~'connection)
          ~'current-state (if (instance? clojure.lang.Atom ~'state) ~'@state {})
          ~'frame-ftype (:frame frame#)
          ~'frame-tag (:tag frame#)
@@ -46,6 +46,26 @@
          ~'fsid (:id ~'fs)
          ~'path (:path ~'mapping)]
      ~@body))
+
+(defn conj-val
+  "Remove a value from an atomic set."
+  [a val]
+  (swap! a (fn [x] (conj x val))))
+
+(defn disj-val
+  "Remove a value from an atomic set."
+  [a val]
+  (swap! a (fn [x] (disj x val))))
+
+(defn assoc-val
+  "Associate a key with the value in an atomic map."
+  [a key val]
+  (swap! a assoc key val))
+
+(defn dissoc-val
+  "Remove a key from an atomic map."
+  [a key]
+  (swap! a (fn [x] (dissoc x key))))
 
 (defn wrap-buffer
   "Wraps a byte-array in a Java ByteBuffer, using little-endian

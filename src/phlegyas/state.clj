@@ -29,7 +29,7 @@
      (into ~'frame frame-update#)))
 
 (defn Tversion
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (cond
@@ -41,11 +41,11 @@
                                :msize max-message-size}})))))
 
 (defn Tauth
-  [frame state]
+  [frame connection]
   (error! "no authentication required"))
 
 (defn Tattach
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (let [root-fs ((:root-filesystem current-state))
@@ -59,11 +59,13 @@
                  :reply (path->qid root-fs root-path)})))))
 
 (defn Tflush
-  [frame state]
-  (state! {}))
+  [frame connection]
+  (with-frame-bindings frame
+    (do
+      (state! {}))))
 
 (defn Twalk
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (if (= (count frame-wnames) 0)
@@ -81,7 +83,7 @@
                      :reply {:nwqids qids}})))))))
 
 (defn Topen
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (let [role (fid->role frame-fid current-state)
@@ -95,7 +97,7 @@
                            :qid-path (:qid-path stat)}}))))))
 
 (defn Tcreate
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (let [new-stat (create-synthetic-file frame-name #'example-function-for-files)
@@ -117,7 +119,7 @@
                          :iounit (iounit!)}})))))
 
 (defn Tread
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (let [stat (path->stat fs (:path mapping))
@@ -155,23 +157,25 @@
                 (state! {:reply {:data data}})))))))
 
 (defn Twrite
-  [frame state]
-  (let [stat (fid->stat @state (:fid frame))
-        write-fn (:write-fn stat)]
-    (if write-fn
-      (let [bytes-written (write-fn stat frame state)]
-        (state! {:reply {:count bytes-written}}))
-      (error! "not implemented"))))
+  [frame connection]
+  (with-frame-bindings frame
+    (do
+      (let [stat (fid->stat @state (:fid frame))
+            write-fn (:write-fn stat)]
+        (if write-fn
+          (let [bytes-written (write-fn stat frame state)]
+            (state! {:reply {:count bytes-written}}))
+          (error! "not implemented"))))))
 
 (defn Tclunk
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (state! {:update (fn [x] (-> (into x {:fids (dissoc (:fids x) frame-fid)
                                            :mapping (dissoc (:mapping x) frame-fid)})))}))))
 
 (defn Tremove
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (let [stat (fid->stat current-state frame-fid)
@@ -180,15 +184,17 @@
         (state! {:update (fn [x] (update-stat x (:parent stat) {:children new-children}))})))))
 
 (defn Tstat
-  [frame state]
+  [frame connection]
   (with-frame-bindings frame
     (do
       (let [stat (stat-file fs path)]
         (state! {:reply stat})))))
 
 (defn Twstat
-  [frame state]
-  (error! "not implemented"))
+  [frame connection]
+  (with-frame-bindings frame
+    (do
+      (error! "not implemented"))))
 
 (def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
@@ -198,22 +204,24 @@
   of the client to ensure that it does not send conflicting messages before the
   acknowledgement of a previous action has been sent. Therefore, this can be
   executed asynchronously inside a future."
-  [frame state out]
-  (log/debug "in: "frame)
-  (let [reply (((:frame frame) state-handlers) frame state)]
-    (log/debug "out: " reply)
-    (s/put! out reply)))
+  [frame connection out]
+  (log/debug "in:" frame)
+  (conj-val (:in-flight-requests connection) (:tag frame))
+  (let [reply (((:frame frame) state-handlers) frame connection)]
+    (log/debug "out:" reply)
+    (s/put! out reply)
+    (disj-val (:in-flight-requests connection) (:tag frame))))
 
-(defn consume-with-state [in out state f]
+(defn consume [in out connection f]
   (d/loop []
     (d/chain (s/take! in ::drained)
              ;; if we got a message, run it through `f`
              ;; as a future, and immediately return.
-             (fn [frame]
-               (if (identical? ::drained frame)
+             (fn [msg]
+               (if (identical? ::drained msg)
                  ::drained
                  (do
-                   (d/future (f frame state out))
+                   (d/future (f msg connection out))
                    ::future)))
 
              ;; recur, unless the stream is already drained

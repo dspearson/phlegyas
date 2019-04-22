@@ -22,21 +22,6 @@
         [old new] (swap-vals! a (fn [x] (conj x (next-available x))))]
     (first (sets/difference new old))))
 
-(defn disj-val
-  "Remove a value from the atomic set."
-  [a val]
-  (swap! a (fn [x] (disj x val))))
-
-(defn assoc-val
-  "Associate a key with the value in the atomic map."
-  [a key val]
-  (swap! a assoc key val))
-
-(defn dissoc-val
-  "Remove a key from the atomic map."
-  [a key]
-  (swap! a (fn [x] (dissoc x key))))
-
 (defn add-child-mapping
   "Adds a new fid that results from a successful walk to the atomic map."
   [mapping fid newfid paths]
