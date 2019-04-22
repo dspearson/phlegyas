@@ -163,7 +163,7 @@
   (let [files (:files fs)
         path (or (:qid-path stat) (next-available-path fs))]
     (-> fs
-        (assoc :files (assoc files path (assoc stat :parent parent :qid-path path)))
+        (assoc-in [:files path] (into stat {:parent parent :qid-path path}))
         (update-children! parent path))))
 
 (defn create-filesystem
@@ -227,7 +227,7 @@
   [state fid data]
   (let [fs-name (fid->fsname state fid)
         stat (into (fid->stat state fid) data)]
-    (update-in state [:fs-map fs-name :files] (fn [x] (assoc x (:qid-path stat) stat)))))
+    (update-in state [:fs-map fs-name :files (:qid-path stat)] (fn [x] (into x stat)))))
 
 (defn update-mapping
   [state fid data]
@@ -287,23 +287,23 @@
 
 (defn add-fs
   [state fs]
-  (assoc state :fs-map (assoc (:fs-map state) (:id fs) fs)))
+  (assoc-in state [:fs-map (:id fs)] fs))
 
 (defn add-mapping
   [state fid fs path]
-  (assoc state :mapping (assoc (:mapping state) fid {:filesystem fs :path path :offset 0})))
+  (assoc-in state [:mapping fid] {:filesystem fs :path path :offset 0}))
 
 (defn update-mapping
   [state fid data]
-  (assoc state :mapping (assoc (:mapping state) fid (into (get (:mapping state) fid) data))))
+  (update-in state [:mapping fid] (fn [x] (into x data))))
 
 (defn add-fid
   [state fid tag]
-  (assoc state :fids (assoc (:fids state) fid {:added-by tag})))
+  (assoc-in state [:fids fid] {:added-by tag}))
 
 (defn add-role
   [state fsid uid gid]
-  (assoc state :role (assoc (:role state) fsid {:uid uid :gid gid})))
+  (assoc-in state [:role fsid] {:uid uid :gid gid}))
 
 (defn path->name
   [fs path]

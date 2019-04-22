@@ -106,13 +106,10 @@
             file-path (next-available-path fs)]
         (state! {:update (fn [x]
                            (-> x
-                               (assoc-in [:fs-map fs-name :files file-path]
-                                         (assoc new-stat
-                                                :qid-path file-path
-                                                :parent parent-path))
+                               (update-in [:fs-map fs-name :files file-path]
+                                          (fn [x] ( x {:qid-path file-path :parent parent-path})))
                                (update-in [:fs-map fs-name :files parent-path]
-                                          (fn [y]
-                                            (assoc y :children (conj (:children y) file-path))))))
+                                          (fn [y] (assoc y :children (conj (:children y) file-path))))))
                  :reply {:qid-type (:qid-type new-stat)
                          :qid-vers (:qid-vers new-stat)
                          :qid-path file-path
@@ -138,23 +135,24 @@
                                   (:children stat)            ; so return all children.
                                   (:paths-remaining mapping)) ; or else, we are continuing a previous read call.
 
-                   ; `directory-reader` returns a vector, first the data, and second, any remaining paths not visited.
-                   ; this can happen if the read call on a directory is larger than the size allowed in a message,
-                   ; and read calls can only return integral stat entries, so we need to store the list of paths that
-                   ; were not visited in this iteration, so that followup reads can continue where we left off.
-                   [data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) frame-count)
-                   delivered-byte-count (count data)]
-               (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count data))
-                                                                    :paths-remaining paths-remaining}))
-                        :reply {:data data}})))
+                       ; `directory-reader` returns a vector, first the data, and second, any remaining paths not visited.
+                       ; this can happen if the read call on a directory is larger than the size allowed in a message,
+                       ; and read calls can only return integral stat entries, so we need to store the list of paths that
+                       ; were not visited in this iteration, so that followup reads can continue where we left off.
+                       [dir-data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) frame-count)
+                       delivered-byte-count (count dir-data)]
 
-      :file (if (and (not= 0 (:length stat)) (>= frame-offset (:length stat))) ; if offset >= length, it means that we are
-              (state! {:reply {:data nil}})                                    ; reading beyond end of file, so return no data.
-              (let [data (fetch-data frame state :stat stat)]                  ; else, read file.
-                (state! {:reply {:data data}})))
+                   (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count dir-data))
+                                                                        :paths-remaining paths-remaining}))
+                            :reply {:data dir-data}})))
 
-      :append (let [data (fetch-data frame state :stat stat)]
-                (state! {:reply {:data data}})))))))
+          :file (if (and (not= 0 (:length stat)) (>= frame-offset (:length stat))) ; if offset >= length, it means that we are
+                  (state! {:reply {:data nil}})                                    ; reading beyond end of file, so return no data.
+                  (let [file-data (fetch-data frame state :stat stat)]             ; else, read file.
+                    (state! {:reply {:data file-data}})))
+
+          :append (let [file-data (fetch-data frame state :stat stat)]
+                    (state! {:reply {:data file-data}})))))))
 
 (defn Twrite
   [frame connection]

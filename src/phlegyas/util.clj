@@ -6,8 +6,8 @@
 ;; (for [elem (keys buffer-operator)]
 ;;   (symbol (str "frame-" (subs (str elem) 1))))
 (defmacro with-frame-bindings
-  [data body]
-  `(let [frame# ~data
+  [frame body]
+  `(let [frame# ~frame
          ~'state (:state ~'connection)
          ~'current-state (if (instance? clojure.lang.Atom ~'state) ~'@state {})
          ~'frame-ftype (:frame frame#)

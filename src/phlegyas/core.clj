@@ -3,6 +3,7 @@
             [phlegyas.state :refer :all]
             [phlegyas.vfs :refer :all]
             [phlegyas.util :refer :all]
+            [phlegyas.client :refer :all]
             [clojure.core.async :as async]
             [manifold.stream :as s]
             [manifold.deferred :as d]
@@ -28,7 +29,7 @@
     (consume incoming-frame-stream outgoing-frame-stream connection #'state-handler)
     connection))
 
-(log/set-level! :info)
+(log/set-level! :debug)
 
 (def srv nil)
 

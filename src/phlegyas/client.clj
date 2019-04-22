@@ -147,7 +147,7 @@
         (-> buf flatten pack)
         (recur (+ offset (count data)) (conj buf data))))))
 
-(defn read-dir
+(defn read-dir-contents
   [connection fid]
   (let [fid-clone (clone-fid connection fid)
         iounit (open-fid connection fid-clone 0)
@@ -171,7 +171,7 @@
 
 (defn lsdir
   [connection fid]
-  (let [data (read-dir connection fid)]
+  (let [data (read-dir-contents connection fid)]
     (for [k (keys data)]
       (:name (get data k)))))
 
