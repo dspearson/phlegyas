@@ -138,6 +138,13 @@
         true)
       false)))
 
+(defn remove-fid
+  [connection fid]
+  (let [response @(transact connection {:frame :Tremove :fid fid})]
+    (if (= (:frame response) :Rremove)
+      true
+      false)))
+
 (defn read-fid
   [connection fid iounit]
   (loop [offset 0
