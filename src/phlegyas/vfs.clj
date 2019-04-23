@@ -131,10 +131,9 @@
                 :read-fn read-fn})))
 
 (defn fetch-data
-  "A generic method for fetching data from files. Assumes nothing."
-  [frame state & {:keys [stat]}]
+  [connection frame stat]
   (let [read-fn (:read-fn stat)]
-    (read-fn stat frame state)))
+    (read-fn :connection connection :frame frame :stat stat)))
 
 (defn read-dir
   [fs stat]
@@ -191,9 +190,9 @@
                 :write-fn write-fn
                 :read-fn read-fn})))
 
-(defn example-function-for-files
-  [stat frame state]
-  (if (> (:offset frame) 0)
+(defn-frame-binding example-function-for-files
+  [& {:keys [connection frame stat]}]
+  (if (> frame-offset 0)
     (byte-array 0)
     (.getBytes "hello, world!\n" "UTF-8")))
 
@@ -229,35 +228,29 @@
   [state fid data]
   (update-in state [:mapping fid] (fn [x] (into x data))))
 
-(defn example-read-write
-  [stat frame state]
-  (let [offset (:offset frame)
-        fid (:fid frame)
-        count-bytes (count (:data frame))
-        contents (:contents (:metadata stat))
-        operation (if (= (:frame frame) :Tread) :read :write)]
-    (if (= (:frame frame) :Twrite)
+(defn-frame-binding example-read-write
+  [& {:keys [connection frame stat]}]
+  (let [count-bytes (count frame-data)
+        contents (:contents (:metadata stat))]
+    (if (= frame-ftype :Twrite)
       (do
-        (swap! state (fn [x] (update-stat x fid {:metadata {:contents (conj contents (:data frame))}
-                                                :length (+ (:length stat) count-bytes)})))
+        (swap! state (fn [x] (update-stat x frame-fid {:metadata {:contents (conj contents frame-data)}
+                                                      :length (+ (:length stat) count-bytes)})))
         (uint->int count-bytes))
       (-> contents flatten pack))))
 
-(defn print-current-time
-  [stat frame state]
-  (let [fid (:fid frame)
-        offset (:offset frame)
-        current-time (quot (System/currentTimeMillis) 1000)
+(defn-frame-binding print-current-time
+  [& {:keys [connection frame stat]}]
+  (let [current-time (quot (System/currentTimeMillis) 1000)
         current-time-bytes (.getBytes (str current-time "\n") "UTF-8")
         file-time (:time (:metadata stat))]
+    (swap! state (fn [x] (update-stat x frame-fid {:metadata {:time current-time}
+                                                  :atime current-time
+                                                  :mtime current-time
+                                                  :qid-vers (int (hash current-time))
+                                                  :length (ulong->long (+ 1 frame-offset (count current-time-bytes)))})))
 
-    (swap! state (fn [x] (update-stat x fid {:metadata {:time current-time}
-                                            :atime current-time
-                                            :mtime current-time
-                                            :qid-vers (int (hash current-time))
-                                            :length (ulong->long (+ 1 offset (count current-time-bytes)))})))
-
-    (if (or (= offset 0) (not= current-time file-time))
+    (if (or (= frame-offset 0) (not= current-time file-time))
       current-time-bytes
       (byte-array 0))))
 

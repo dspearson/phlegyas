@@ -133,10 +133,10 @@
 
       :file (if (and (not= 0 (:length stat)) (>= frame-offset (:length stat))) ; if offset >= length, it means that we are
               (state! {:reply {:data nil}})                                    ; reading beyond end of file, so return no data.
-              (let [file-data (fetch-data frame state :stat stat)]             ; else, read file.
+              (let [file-data (fetch-data connection frame stat)]             ; else, read file.
                 (state! {:reply {:data file-data}})))
 
-      :append (let [file-data (fetch-data frame state :stat stat)]
+      :append (let [file-data (fetch-data connection frame stat)]
                 (state! {:reply {:data file-data}})))))
 
 (defn-frame-binding Twrite
@@ -144,7 +144,7 @@
   (let [stat (fid->stat current-state frame-fid)
         write-fn (:write-fn stat)]
     (if write-fn
-      (let [bytes-written (write-fn stat frame state)]
+      (let [bytes-written (write-fn :connection connection :frame frame :stat stat)]
         (state! {:reply {:count bytes-written}}))
       (error! "not implemented"))))
 
