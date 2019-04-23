@@ -1,4 +1,4 @@
-(ns phlegyas.client-test
+(ns phlegyas.client-server-test
   (:use [clojure test])
   (:require [aleph.tcp :as tcp]
             [phlegyas.core :as pc]
