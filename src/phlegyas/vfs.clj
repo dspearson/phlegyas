@@ -146,25 +146,21 @@
   [path]
   (file->stat "/" path :read-fn #'identity))
 
-(defn update-children!
+(defn update-children
   [fs path child]
-  (let [stat (path->stat fs path)
-        children (:children stat)
-        updated-stat (assoc stat :children (conj children child))
-        updated-files (assoc (:files fs) path updated-stat)]
-    (assoc fs :files updated-files)))
+  (update-in fs [:files path :children] (fn [x] (conj x child))))
 
 (defn next-available-path
   [fs]
   (ulong->long (swap! (:path-pool fs) inc)))
 
-(defn insert-file!
+(defn insert-file
   [fs parent stat]
   (let [files (:files fs)
         path (or (:qid-path stat) (next-available-path fs))]
     (-> fs
-        (assoc-in [:files path] (into stat {:parent parent :qid-path path}))
-        (update-children! parent path))))
+        (assoc-in [:files path] (assoc stat :parent parent :qid-path path))
+        (update-children parent path))))
 
 (defn create-filesystem
   []
@@ -271,9 +267,9 @@
         root-path (:root-path root-fs)
         another-example-file (create-synthetic-file "current-time" #'print-current-time :metadata {:time 0} :append true)]
     (-> root-fs
-        (insert-file! root-path (create-synthetic-file "write-to-me" #'example-read-write :write-fn #'example-read-write))
-        (insert-file! root-path (create-synthetic-file "example-file" #'example-function-for-files))
-        (insert-file! root-path another-example-file))))
+        (insert-file root-path (create-synthetic-file "write-to-me" #'example-read-write :write-fn #'example-read-write))
+        (insert-file root-path (create-synthetic-file "example-file" #'example-function-for-files))
+        (insert-file root-path another-example-file))))
 
 (defn stat-file
   [fs path]

@@ -5,6 +5,7 @@
             [phlegyas.util :refer :all]
             [clojure.string :as string]
             [clojure.core.async :as async]
+            [clojure.core.incubator :as i]
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [taoensso.timbre :as log]))
@@ -23,9 +24,9 @@
   [data]
   `(let [state-update# (:update ~data)
          reply-typ# ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
-         frame-update# (assoc (:reply ~data) :frame reply-typ#)
-         _# (if state-update#
-              (swap! ~'state state-update#))]
+         frame-update# (assoc (:reply ~data) :frame reply-typ#)]
+     (if state-update#
+       (swap! ~'state state-update#))
      (into ~'frame frame-update#)))
 
 (defn-frame-binding Tversion
@@ -109,9 +110,7 @@
         typ (stat-type stat)]
     (case typ
 
-      :dir (if (and
-                (> frame-offset 0)
-                (not (= frame-offset (:offset mapping))))
+      :dir (if (and (> frame-offset 0) (not (= frame-offset (:offset mapping))))
              ; reads of directories must begin at offset 0, or the previous offset +
              ; the last returned byte count, for followup reads of incomplete data.
              ; i.e., either offset = 0, or offset = previous offset + previous count.
@@ -142,7 +141,7 @@
 
 (defn-frame-binding Twrite
   [frame connection]
-  (let [stat (fid->stat @state (:fid frame))
+  (let [stat (fid->stat current-state frame-fid)
         write-fn (:write-fn stat)]
     (if write-fn
       (let [bytes-written (write-fn stat frame state)]
@@ -151,8 +150,9 @@
 
 (defn-frame-binding Tclunk
   [frame connection]
-  (state! {:update (fn [x] (-> (into x {:fids (dissoc (:fids x) frame-fid)
-                                       :mapping (dissoc (:mapping x) frame-fid)})))}))
+  (state! {:update (fn [x] (-> x
+                              (i/dissoc-in [:fids frame-fid])
+                              (i/dissoc-in [:mapping frame-fid])))}))
 
 (defn-frame-binding Tremove
   [frame connection]
@@ -168,7 +168,7 @@
 
 (defn-frame-binding Twstat
   [frame connection]
-  (state! {:reply {}}))
+  (state! {}))
 
 (def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
 
@@ -182,6 +182,7 @@
   (log/debug "in:" frame)
   (conj-val (:in-flight-requests connection) (:tag frame))
   (let [reply (((:frame frame) state-handlers) frame connection)]
+    (log/trace "state:" @(:state connection))
     (log/debug "out:" reply)
     (s/put! out reply)
     (disj-val (:in-flight-requests connection) (:tag frame))))
