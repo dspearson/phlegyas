@@ -18,3 +18,18 @@
     (let [connection (connect "localhost" test-port)
           cloned-fid (clone-fid connection 0)]
       (is (= cloned-fid 1)))))
+
+(deftest reading-directory
+  (with-server (tcp/start-server pc/tcp-route {:port test-port :join? false})
+    (let [connection (connect "localhost" test-port)
+          cloned-fid (clone-fid connection 0)
+          dir-contents (lsdir connection cloned-fid)]
+      (is (seq? dir-contents)))))
+
+(deftest walking-path
+  (with-server (tcp/start-server pc/tcp-route {:port test-port :join? false})
+    (let [connection (connect "localhost" test-port)
+          cloned-fid (clone-fid connection 0)
+          dir-entry (first (lsdir connection cloned-fid))
+          walked-fid (walk-fid connection 1 [dir-entry])]
+      (is (int? walked-fid)))))
