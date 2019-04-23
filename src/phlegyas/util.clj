@@ -1,7 +1,7 @@
 (ns phlegyas.util
   (:import java.nio.ByteBuffer))
 
-(defmacro defun-frame-binding
+(defmacro defn-frame-binding
   [name args body]
   `(defn ~name ~args (with-frame-bindings ~body)))
 
