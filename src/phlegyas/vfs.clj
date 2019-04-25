@@ -354,9 +354,10 @@
     (loop [accum '()
            last-path nil
            paths (into #{} (map (fn [x] (:qid-path x)) statcoll))
+           data-size 0
            stats-left statcoll]
       (cond
-        (> (count (flatten accum)) max-size)
+        (> data-size max-size)
         [(-> accum rest flatten pack)
          (if last-path
            (conj paths last-path)
@@ -367,7 +368,9 @@
          paths]
 
         :else
-        (recur (conj accum (transform (first stats-left) layout))
-               (:qid-path (first stats-left))
-               (disj paths (:qid-path (first stats-left)))
-               (rest stats-left))))))
+        (let [data (transform (first stats-left) layout)]
+          (recur (conj accum data)
+                 (:qid-path (first stats-left))
+                 (disj paths (:qid-path (first stats-left)))
+                 (+ data-size (count data))
+                 (rest stats-left)))))))
