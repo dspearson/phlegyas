@@ -264,12 +264,6 @@
         (insert-file root-path (create-synthetic-file "example-file" #'example-function-for-files))
         (insert-file root-path another-example-file))))
 
-(defn stat-file
-  [fs path]
-  (let [f (get (:files fs) path)
-        stat (into {:frame :stat} f)]
-    (into {:frame :stat} stat)))
-
 (defn stat->data
   [stat]
   ((:contents stat) stat))

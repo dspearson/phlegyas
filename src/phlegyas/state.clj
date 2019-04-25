@@ -165,7 +165,7 @@
 
 (defn-frame-binding Tstat
   [frame connection]
-  (let [stat (stat-file fs path)]
+  (let [stat (fid->stat current-state frame-fid)]
     (state! {:reply stat})))
 
 (defn-frame-binding Twstat
