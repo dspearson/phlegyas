@@ -46,7 +46,7 @@
           ~'frame-oldtag (:oldtag frame#)
           ~'frame-newfid (:newfid frame#)
           ~'frame-msize (:msize frame#)
-          ~'mapping (or (get (:mapping ~'current-state) ~'frame-fid) {})
+          ~'mapping (or (get (:mapping ~'current-state) (keywordize ~'frame-fid)) {})
           ~'fs-name (:filesystem ~'mapping)
           ~'fs (get (:fs-map ~'current-state) ~'fs-name)
           ~'fsid (:id ~'fs)

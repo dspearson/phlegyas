@@ -95,9 +95,9 @@
         file-path (next-available-path fs)]
     (state! {:update (fn [x]
                        (-> x
-                           (assoc-in [:fs-map fs-name :files file-path]
+                           (assoc-in [:fs-map fs-name :files (keywordize file-path)]
                                      (into new-stat {:qid-path file-path :parent parent-path}))
-                           (update-in [:fs-map fs-name :files parent-path]
+                           (update-in [:fs-map fs-name :files (keywordize parent-path)]
                                       (fn [y] (assoc y :children (conj (:children y) file-path))))))
              :reply {:qid-type (:qid-type new-stat)
                      :qid-vers (:qid-vers new-stat)
@@ -157,9 +157,11 @@
 (defn-frame-binding Tremove
   [frame connection]
   (let [stat (fid->stat current-state frame-fid)
-        dir-stat (fid->stat current-state (:parent stat))
-        new-children (disj (:children dir-stat) (:qid-path stat))]
-    (state! {:update (fn [x] (update-stat x (:parent stat) {:children new-children}))})))
+        dir-stat (get (:files fs) (:parent stat))
+        new-children (disj (:children dir-stat) (keywordize (:qid-path stat)))]
+    (state! {:update (fn [x] (-> x
+                                (update-in [:fs-map fs-name :files (:parent stat)] (fn [y] (assoc y :children new-children)))
+                                (i/dissoc-in [:fs-map fs-name :files (keywordize (:qid-path stat))])))})))
 
 (defn-frame-binding Tstat
   [frame connection]

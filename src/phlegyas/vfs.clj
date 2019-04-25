@@ -97,7 +97,7 @@
 
 (defn fid->mapping
   [conn fid]
-  (get (:mapping conn) fid))
+  (get (:mapping conn) (keywordize fid)))
 
 (defn file->stat
   [file path & {:keys [read-fn parent length] :or {read-fn #'identity parent nil length nil}}]
@@ -127,7 +127,7 @@
                 :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
                 :size size
                 :children #{}
-                :parent (if (nil? parent) path parent)
+                :parent (if (nil? parent) (keywordize path) parent)
                 :read-fn read-fn})))
 
 (defn fetch-data
@@ -147,7 +147,7 @@
 
 (defn update-children
   [fs path child]
-  (update-in fs [:files path :children] (fn [x] (conj x child))))
+  (update-in fs [:files path :children] (fn [x] (conj x (keywordize child)))))
 
 (defn next-available-path
   [fs]
@@ -158,14 +158,14 @@
   (let [files (:files fs)
         path (or (:qid-path stat) (next-available-path fs))]
     (-> fs
-        (assoc-in [:files path] (assoc stat :parent parent :qid-path path))
+        (assoc-in [:files (keywordize path)] (assoc stat :parent parent :qid-path path))
         (update-children parent path))))
 
 (defn create-filesystem
   []
   (let [path-pool (atom 0)
         root-dir (root-dir 0)]
-    (map->filesystem {:files {0 root-dir} :path-pool path-pool :id (keyword (gensym "filesystem_")) :root-path 0})))
+    (map->filesystem {:files {:0 root-dir} :path-pool path-pool :id (keyword (gensym "filesystem_")) :root-path :0})))
 
 (defn synthetic-file
   [filename owner group mode read-fn write-fn metadata append]
@@ -222,11 +222,11 @@
   [state fid data]
   (let [fs-name (fid->fsname state fid)
         stat (into (fid->stat state fid) data)]
-    (update-in state [:fs-map fs-name :files (:qid-path stat)] (fn [x] (into x stat)))))
+    (update-in state [:fs-map fs-name :files (keywordize (:qid-path stat))] (fn [x] (into x stat)))))
 
 (defn update-mapping
   [state fid data]
-  (update-in state [:mapping fid] (fn [x] (into x data))))
+  (update-in state [:mapping (keywordize fid)] (fn [x] (into x data))))
 
 (defn-frame-binding example-read-write
   [& {:keys [connection frame stat]}]
@@ -257,7 +257,7 @@
 (defn example-filesystem!
   []
   (let [root-fs (create-filesystem)
-        root-path (:root-path root-fs)
+        root-path :0
         another-example-file (create-synthetic-file "current-time" #'print-current-time :metadata {:time 0} :append true)]
     (-> root-fs
         (insert-file root-path (create-synthetic-file "write-to-me" #'example-read-write :write-fn #'example-read-write))
@@ -280,23 +280,19 @@
 
 (defn add-mapping
   [state fid fs path]
-  (assoc-in state [:mapping fid] {:filesystem fs :path path :offset 0}))
+  (assoc-in state [:mapping (keywordize fid)] {:filesystem fs :path path :offset 0}))
 
 (defn update-mapping
   [state fid data]
-  (update-in state [:mapping fid] (fn [x] (into x data))))
+  (update-in state [:mapping (keywordize fid)] (fn [x] (into x data))))
 
 (defn add-fid
   [state fid tag]
-  (assoc-in state [:fids fid] {:added-by tag}))
+  (assoc-in state [:fids (keywordize fid)] {:added-by tag}))
 
 (defn add-role
   [state fsid uid gid]
   (assoc-in state [:role fsid] {:uid uid :gid gid}))
-
-(defn path->name
-  [fs path]
-  (:name (get fs path)))
 
 (defn path->qid
   [fs path]
@@ -352,7 +348,7 @@
 
 (defn fid->role
   [fid conn]
-  (get (:role conn) (get (:mapping conn) fid)))
+  (get (:role conn) (get (:mapping conn) (keywordize fid))))
 
 (defn stat-type
   [stat]
