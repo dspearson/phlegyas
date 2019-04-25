@@ -97,8 +97,8 @@
                        (-> x
                            (assoc-in [:fs-map fs-name :files (keywordize file-path)]
                                      (into new-stat {:qid-path file-path :parent parent-path}))
-                           (update-in [:fs-map fs-name :files (keywordize parent-path)]
-                                      (fn [y] (assoc y :children (conj (:children y) file-path))))))
+                           (update-in [:fs-map fs-name :files parent-path]
+                                      (fn [y] (assoc y :children (conj (:children y) (keywordize file-path)))))))
              :reply {:qid-type (:qid-type new-stat)
                      :qid-vers (:qid-vers new-stat)
                      :qid-path file-path
