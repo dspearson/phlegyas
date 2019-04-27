@@ -175,7 +175,7 @@
   (let [nwname (-> buffer ^Short .getShort short->ushort)]
     (if (= nwname 0)
       []
-      (loop [wnames []
+      (loop [wnames '()
              count nwname]
         (if (= count 0)
           wnames
