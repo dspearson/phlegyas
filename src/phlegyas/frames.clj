@@ -6,6 +6,7 @@
             [manifold.deferred :as d]
             [taoensso.timbre :as log]
             [manifold.stream :as s]
+            [taoensso.timbre :as log]
             [primitive-math :as math
              :refer [ubyte->byte
                      uint->int
@@ -28,12 +29,18 @@
 (defn disassemble-packet
   "Takes in a byte-array, and attempts to decode it. Produces a map, matching that
   of the message type found in the `phlegyas.types` namespace."
-  [packet]
-  (let [^java.nio.ByteBuffer frame (wrap-buffer packet)
+  [packet uuid]
+  (let [start (System/nanoTime)
+        ^java.nio.ByteBuffer frame (wrap-buffer packet)
         len (uint->int (frame-length frame))
         frame-typ (frame-type frame)
-        layout (get frame-layouts frame-typ)]
-    (into {:frame frame-typ} (for [typ layout] {typ ((get buffer-functions typ) frame)}))))
+        layout (get frame-layouts frame-typ)
+        data (into {:frame frame-typ :transaction-id uuid} (for [typ layout] {typ ((get buffer-functions typ) frame)}))
+        end (System/nanoTime)]
+    (log/debug uuid "disassemble-packet")
+    (if (> (/ (- end start) 1000) 1000)
+      (log/debug uuid "disassemble time:" (float (/ (- end start) 100000000)) "seconds" ":" frame))
+    data))
 
 (defn assemble
   "Takes in a frame and frame type, calculates the final size of the frame
@@ -60,14 +67,22 @@
   We feed `frame` into `transform`, which takes a frame and layout, then `flatten`, `pack`,
   and finally `assemble`."
   [frame]
-  (let [ftype (:frame frame)
-        layout (get frame-layouts ftype)]
-    (-> frame (transform layout) flatten pack (assemble ftype))))
+  (let [start (System/nanoTime)
+        uuid (:transaction-id frame)
+        ftype (:frame frame)
+        layout (get frame-layouts ftype)
+        data (-> frame (transform layout) flatten pack (assemble ftype))
+        end (System/nanoTime)]
+    (log/debug uuid "assemble-packet")
+    (if (> (/ (- end start) 1000) 1000)
+      (log/debug uuid "assemble time:" (float (/ (- end start) 100000000)) "seconds" ":" frame))
+    data))
 
 (defn dispatch-frame
   "Cuts frames along their boundaries, returning any partially assembled packets back to
   the frame loop."
-  [packet out]
+  [packet out uuid]
+  (log/debug uuid "dispatch-frame")
   (loop [x packet]
     (if (< (count x) 4)
       (vec x)
@@ -75,7 +90,7 @@
         (if (< (count x) l)
           (vec x)
           (do
-            (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet))
+            (s/put! out (-> x (subvec 0 l) byte-array (disassemble-packet uuid)))
             (recur (vec (subvec x l)))))))))
 
 (defn frame-assembler
@@ -83,7 +98,13 @@
   [in out]
   (async/thread
     (loop [packet (vec @(s/take! in))]
-      (let [partial (dispatch-frame packet out)]
+      (let [start (System/nanoTime)
+            uuid (uuid!)
+            partial (dispatch-frame packet out uuid)
+            end (System/nanoTime)]
+        (log/debug uuid "frame assembler")
+        (if (> (/ (- end start) 1000) 1000)
+          (log/debug uuid "dispatch-frame time:" (float (/ (- end start) 100000000)) "seconds"))
         (if (s/closed? in)
           (s/close! out)
           (recur (vec (mapcat seq [partial @(s/take! in)]))))))))

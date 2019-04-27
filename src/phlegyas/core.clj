@@ -29,7 +29,7 @@
     (consume incoming-frame-stream outgoing-frame-stream connection #'state-handler)
     connection))
 
-(log/set-level! :info)
+(log/set-level! :debug)
 
 (def srv nil)
 
