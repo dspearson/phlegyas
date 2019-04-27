@@ -71,12 +71,12 @@
   (loop [x packet]
     (if (< (count x) 4)
       x
-      (let [l (-> x (subvec 0 4) byte-array ^java.nio.ByteBuffer wrap-buffer frame-length)]
+      (let [l (-> (subvec x 0 4) byte-array ^java.nio.ByteBuffer wrap-buffer frame-length)]
         (if (< (count x) l)
           x
           (do
             (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet))
-            (recur (subvec x l))))))))
+            (recur (vec (subvec x l)))))))))
 
 (defn frame-assembler
   "Spawn a thread to recursively read from an incoming stream."
