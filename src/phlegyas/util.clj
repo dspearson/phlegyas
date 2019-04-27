@@ -1,4 +1,6 @@
 (ns phlegyas.util
+  (:require [buddy.core.hash :as hash]
+            [buddy.core.codecs :refer :all])
   (:import java.nio.ByteBuffer))
 
 (defmacro defn-frame-binding
@@ -119,3 +121,8 @@
   "Coerce a string to integer."
   [s]
   (Integer. (re-find  #"\d+" s)))
+
+(defn sha-str
+  [s]
+  (-> (hash/sha256 s)
+      (bytes->hex)))

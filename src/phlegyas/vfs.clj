@@ -126,7 +126,7 @@
                 :muid muid
                 :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
                 :size size
-                :children #{}
+                :children {}
                 :parent (if (nil? parent) (keywordize path) parent)
                 :read-fn read-fn})))
 
@@ -146,8 +146,8 @@
   (file->stat "/" path :read-fn #'identity))
 
 (defn update-children
-  [fs path child]
-  (update-in fs [:files path :children] (fn [x] (conj x (keywordize child)))))
+  [fs path keyname child]
+  (update-in fs [:files path :children] (fn [x] (assoc x keyname child))))
 
 (defn next-available-path
   [fs]
@@ -159,7 +159,7 @@
         path (or (:qid-path stat) (next-available-path fs))]
     (-> fs
         (assoc-in [:files (keywordize path)] (assoc stat :parent parent :qid-path path))
-        (update-children parent path))))
+        (update-children parent (keywordize (sha-str (:name stat))) (keywordize path)))))
 
 (defn create-filesystem
   []
@@ -296,12 +296,7 @@
   [fs path wname]
   (if (= wname "..")
     (:parent (get (:files fs) path))
-    (loop [candidates (:children (get (:files fs) path))]
-      (let [candidate (first candidates)]
-        (cond
-          (nil? candidate) nil
-          (= (:name (path->stat fs candidate)) wname) candidate
-          :else (recur (rest candidates)))))))
+    (get (:children (get (:files fs) path)) (keywordize (sha-str wname)))))
 
 (defn walk-path
   [fs path wnames]
@@ -309,7 +304,7 @@
          search-path path
          paths []]
     (let [candidate (first candidates)
-          candidate-path (wname->path fs search-path candidate)]
+          candidate-path (if candidate (wname->path fs search-path candidate))]
       (cond
         (nil? candidate) paths
         (nil? candidate-path) paths
@@ -354,7 +349,7 @@
     (loop [accum '()
            last-path nil
            data-size 0
-           paths-remaining paths]
+           paths-remaining (keys paths)]
       (cond
         (> data-size max-size)
         [(-> accum rest flatten pack)
@@ -367,7 +362,7 @@
          paths-remaining]
 
         :else
-        (let [stat (path->stat fs (first paths-remaining))
+        (let [stat (path->stat fs (get paths (first paths-remaining)))
               data (transform stat layout)]
           (recur (conj accum data)
                  (:qid-path stat)

@@ -98,7 +98,7 @@
                            (assoc-in [:fs-map fs-name :files (keywordize file-path)]
                                      (into new-stat {:qid-path file-path :parent parent-path}))
                            (update-in [:fs-map fs-name :files parent-path]
-                                      (fn [y] (assoc y :children (conj (:children y) (keywordize file-path)))))))
+                                      (fn [y] (assoc y :children (assoc (:children y) (keywordize (sha-str (:name new-stat))) (keywordize file-path)))))))
              :reply {:qid-type (:qid-type new-stat)
                      :qid-vers (:qid-vers new-stat)
                      :qid-path file-path
@@ -158,7 +158,7 @@
   [frame connection]
   (let [stat (fid->stat current-state frame-fid)
         dir-stat (get (:files fs) (:parent stat))
-        new-children (disj (:children dir-stat) (keywordize (:qid-path stat)))]
+        new-children (dissoc (:children dir-stat) (keywordize (sha-str (:name stat))))]
     (state! {:update (fn [x] (-> x
                                 (update-in [:fs-map fs-name :files (:parent stat)] (fn [y] (assoc y :children new-children)))
                                 (i/dissoc-in [:fs-map fs-name :files (keywordize (:qid-path stat))])))})))
