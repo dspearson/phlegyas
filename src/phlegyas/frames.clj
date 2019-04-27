@@ -29,7 +29,7 @@
 (defn disassemble-packet
   "Takes in a byte-array, and attempts to decode it. Produces a map, matching that
   of the message type found in the `phlegyas.types` namespace."
-  [packet uuid]
+  [packet & [uuid]]
   (let [start (System/nanoTime)
         ^java.nio.ByteBuffer frame (wrap-buffer packet)
         len (uint->int (frame-length frame))
