@@ -3,7 +3,7 @@
 
 (defmacro defn-frame-binding
   [name args body]
-  `(defn ~name ~args (with-frame-bindings ~body)))
+  `(defn ~name ~args (do (with-frame-bindings ~body))))
 
 ;; there's probably a much more clever way of doing this, but I gave up after
 ;; a few minutes after trying to look up how to dynamically create let bindings.

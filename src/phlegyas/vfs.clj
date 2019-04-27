@@ -349,28 +349,27 @@
   ((keywordize (:qid-type stat)) reverse-qt-mode))
 
 (defn directory-reader
-  [statcoll max-size]
+  [fs paths max-size]
   (let [layout (subvec (:Rstat frame-layouts) 2)]
     (loop [accum '()
            last-path nil
-           paths (into #{} (map (fn [x] (:qid-path x)) statcoll))
            data-size 0
-           stats-left statcoll]
+           paths-remaining paths]
       (cond
         (> data-size max-size)
         [(-> accum rest flatten pack)
          (if last-path
-           (conj paths last-path)
-           paths)]
+           (conj paths-remaining last-path)
+           paths-remaining)]
 
-        (empty? stats-left)
+        (empty? paths-remaining)
         [(-> accum flatten pack)
-         paths]
+         paths-remaining]
 
         :else
-        (let [data (transform (first stats-left) layout)]
+        (let [stat (path->stat fs (first paths-remaining))
+              data (transform stat layout)]
           (recur (conj accum data)
-                 (:qid-path (first stats-left))
-                 (disj paths (:qid-path (first stats-left)))
+                 (:qid-path stat)
                  (+ data-size (count data))
-                 (rest stats-left)))))))
+                 (rest paths-remaining)))))))

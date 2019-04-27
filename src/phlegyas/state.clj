@@ -124,7 +124,7 @@
                    ; this can happen if the read call on a directory is larger than the size allowed in a message,
                    ; and read calls can only return integral stat entries, so we need to store the list of paths that
                    ; were not visited in this iteration, so that followup reads can continue where we left off.
-                   [dir-data paths-remaining] (directory-reader (into [] (for [x dirpaths] (path->stat fs x))) frame-count)
+                   [dir-data paths-remaining] (directory-reader fs dirpaths frame-count)
                    delivered-byte-count (count dir-data)]
 
                (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count dir-data))
