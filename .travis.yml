@@ -1,4 +1,5 @@
 language: clojure
 script: lein do clean, test
+dist: xenial
 jdk:
   - openjdk11
