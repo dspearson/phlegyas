@@ -70,10 +70,10 @@
   [packet out]
   (loop [x packet]
     (if (< (count x) 4)
-      x
+      (vec x)
       (let [l (-> (subvec x 0 4) byte-array ^java.nio.ByteBuffer wrap-buffer frame-length)]
         (if (< (count x) l)
-          x
+          (vec x)
           (do
             (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet))
             (recur (vec (subvec x l)))))))))
