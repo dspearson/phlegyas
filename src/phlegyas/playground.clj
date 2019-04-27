@@ -34,15 +34,22 @@
 
 (log/set-level! :trace)
 
-(defn attach-and-create
-  [conn]
-  (Tversion {:frame :Tversion :msize 8192 :tag 0 :version "9P2000"} conn)
-  (Tattach {:frame :Tattach :tag 0 :afid 0 :fid 0 :uname "dsp" :aname "dsp"} conn)
+(def conn (test-connection))
 
+(Tversion {:frame :Tversion :msize 8192 :tag 0 :version "9P2000"} conn)
+(Tattach {:frame :Tattach :tag 0 :afid 0 :fid 0 :uname "dsp" :aname "dsp"} conn)
+
+(defn add-files
+  []
   (for [x (range 1 501)]
     (do
       (Twalk {:frame :Twalk :tag 0 :fid 0 :newfid x :wnames []} conn)
       (Twalk {:frame :Twalk :tag 0 :fid x :newfid x :wnames [(str x)]} conn)
       (Tcreate {:frame :Tcreate :tag 0 :fid x :name (str x) :perm 0755 :iomode 1} conn)
-      (Tclunk {:frame :Tclunk :tag 0 :fid x} conn)))
-  true)
+      (Tclunk {:frame :Tclunk :tag 0 :fid x} conn))))
+
+(defn read-directory
+  []
+  (Twalk {:frame :Twalk :tag 0 :fid 0 :newfid 1 :wnames []} conn)
+  (Topen {:frame :Topen :tag 0 :fid 1 :iomode 0} conn)
+  (def data-returned (Tread {:frame :Tread :fid 1 :offset 0 :count 8000} conn)))
