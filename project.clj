@@ -8,6 +8,7 @@
                  [manifold "0.1.9-alpha3"]
                  [aleph "0.4.6"]
                  [buddy/buddy-core "1.4.0"]
+                 [com.taoensso/tufte "2.0.1"]
                  [org.clojure/core.incubator "0.1.4"]
                  [com.taoensso/timbre "4.10.0"]]
   :plugins [[cider/cider-nrepl "0.21.1"]
