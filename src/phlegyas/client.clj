@@ -3,6 +3,7 @@
             [manifold.stream :as s]
             [taoensso.timbre :as log]
             [manifold.deferred :as d]
+            [clojure.string :as cs]
             [aleph.tcp :as tcp]
             [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
@@ -32,7 +33,7 @@
                               parent-uname (:uname parent)
                               path-prefix (if (= parent "/") "" parent)]
                           (assoc y newfid
-                                 {:name (str parent "/" (clojure.string/join "/" paths))
+                                 {:name (str parent "/" (cs/join "/" paths))
                                   :uname parent-uname})))))
 
 (defn tag-and-assemble
