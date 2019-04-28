@@ -3,8 +3,12 @@
             [taoensso.timbre :as log]
             [primitive-math :as math
              :refer [int->uint
+                     uint->int
                      short->ushort
+                     ushort->short
                      long->ulong
+                     ulong->long
+                     byte->ubyte
                      ubyte->byte]]))
 
 (set! *warn-on-reflection* true)
@@ -12,33 +16,33 @@
 (defn get-short
   "Read short from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Short .getShort short->ushort))
+  (-> buffer .getShort))
 
 (defn get-int
   "Read integer from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
+  (-> buffer .getInt))
 
 (defn get-long
   "Read long from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Long .getLong long->ulong))
+  (-> buffer .getLong))
 
 (defn get-string
   "Read string[s] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (let [string-size (-> buffer ^Short .getShort short->ushort)]
+  (let [string-size (-> buffer .getShort)]
     (String. (byte-array (map byte (for [i (range string-size)] (^Byte .get buffer)))) "UTF-8")))
 
 (defn get-byte
   "Read byte from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Byte .get))
+  (-> buffer .get))
 
 (defn get-wnames
   "Read nwname[2] of wname[s] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (let [nwname (-> buffer ^Short .getShort short->ushort)]
+  (let [nwname (-> buffer .getShort short->ushort)]
     (if (= nwname 0)
       []
       (loop [wnames []
@@ -50,7 +54,7 @@
 (defn get-nwqids
   "Read nqwid[2] of qid[13] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (let [nwqid (-> buffer ^Short .getShort short->ushort)]
+  (let [nwqid (-> buffer .getShort short->ushort)]
     (if (= nwqid 0)
       []
       (loop [qids []
@@ -70,53 +74,53 @@
 (defn short->bytes
   [x]
   (let [data (byte-array 2)
-        buffer (wrap-buffer data)]
-    (.putShort buffer x)
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (.putShort buffer (ushort->short x))
     data))
 
 (defn int->bytes
   [x]
   (let [data (byte-array 4)
-        buffer (wrap-buffer data)]
-    (.putInt buffer x)
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (.putInt buffer (uint->int x))
     data))
 
 (defn long->bytes
   [x]
   (let [data (byte-array 8)
-        buffer (wrap-buffer data)]
-    (.putLong buffer x)
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (.putLong buffer (ulong->long x))
     data))
 
 (defn string->bytes
   [x]
-  (let [string-bytes (.getBytes x "UTF-8")
+  (let [string-bytes (.getBytes ^String x "UTF-8")
         string-size (count string-bytes)
         data (byte-array (+ 2 string-size))
-        buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (doto buffer
-      (.putShort string-size)
+      (.putShort (ushort->short string-size))
       (.put string-bytes))
     data))
 
 (defn byte->bytes
   [x]
   (let [data (byte-array 1)
-        buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (doto buffer
-      (.put (byte x)))
+      (.put (ubyte->byte x)))
     data))
 
 (defn wname->bytes
   [x]
-  (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes x "UTF-8")))) x)))
+  (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes ^String x "UTF-8")))) x)))
         num-of-elements (count x)
         data (byte-array buffer-size)
-        buffer (wrap-buffer data)]
-    (.putShort buffer num-of-elements)
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (.putShort buffer (ushort->short num-of-elements))
     (dotimes [n num-of-elements]
-      (let [string-bytes (.getBytes (get x n) "UTF-8")]
-        (.putShort buffer (count string-bytes))
+      (let [string-bytes (.getBytes ^String (get x n) "UTF-8")]
+        (.putShort buffer (ushort->short (count string-bytes)))
         (.put buffer string-bytes)))
     data))
 
@@ -124,20 +128,20 @@
   [x]
   (let [num-of-elements (count x)
         data (byte-array (+ 2 (* 13 num-of-elements)))
-        buffer (wrap-buffer data)]
-    (.putShort buffer num-of-elements)
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (^Short .putShort buffer num-of-elements)
     (dotimes [n num-of-elements]
       (let [qid (get x n)]
-        (.put buffer (:qid-type qid))
-        (.putInt buffer (:qid-vers qid))
-        (.putLong buffer (:qid-path qid))))
+        (.put buffer (ubyte->byte (:qid-type qid)))
+        (.putInt buffer (uint->int (:qid-vers qid)))
+        (.putLong buffer (ulong->long (:qid-path qid)))))
     data))
 
 (defn bytecoll->bytes
   [x]
   (let [size (count x)
         data (byte-array 4)
-        buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (doto buffer
       (.putInt size))
     [data x]))

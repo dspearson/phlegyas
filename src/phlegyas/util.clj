@@ -122,7 +122,7 @@
 (defn parse-int
   "Coerce a string to integer."
   [s]
-  (Integer. (re-find  #"\d+" s)))
+  (Integer/parseInt (re-find #"\d+" s)))
 
 (defn sha-str
   [s]

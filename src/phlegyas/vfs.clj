@@ -15,6 +15,8 @@
 
 ;; an example VFS layer
 
+(set! *warn-on-reflection* true)
+
 (defrecord stat
     [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
 
@@ -33,24 +35,26 @@
   (hash (:mtime stat)))
 
 (defn attrs
-  [fh]
-  (-> fh .toPath (Files/readAttributes PosixFileAttributes (into-array [LinkOption/NOFOLLOW_LINKS]))))
+  [^java.io.File fh]
+  (Files/readAttributes (.toPath fh)
+                        PosixFileAttributes
+                        ^"[Ljava.nio.file.LinkOption;" (into-array [LinkOption/NOFOLLOW_LINKS])))
 
 (defn modification-time
-  [fh]
+  [^java.io.File fh]
   (-> fh .lastModified (/ 1000) int))
 
 (defn access-time
-  [fh]
-  (-> fh attrs .lastAccessTime .toMillis (/ 1000) int))
+  [^java.io.File fh]
+  (-> fh ^sun.nio.fs.UnixFileAttributes attrs .lastAccessTime .toMillis (/ 1000) int))
 
 (defn octal-mode
-  [fh]
+  [^java.io.File fh]
   (apply + (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
              ((keywordize x) java-permission-mode))))
 
 (defn permission-set
-  [fh]
+  [^java.io.File fh]
   (let [permissions (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
                       (string/lower-case (str x)))
         permission-map (for [x ["owner" "group" "others"]]
@@ -59,27 +63,27 @@
     (into {} permission-map)))
 
 (defn owner
-  [fh]
-  (-> fh attrs .owner .getName))
+  [^java.io.File fh]
+  (-> fh ^sun.nio.fs.UnixFileAttributes attrs .owner .getName))
 
 (defn group
-  [fh]
-  (-> fh attrs .group .getName))
+  [^java.io.File fh]
+  (-> fh ^sun.nio.fs.UnixFileAttributes attrs .group .getName))
 
 (defn directory?
-  [fh]
-  (-> fh attrs .isDirectory))
+  [^java.io.File fh]
+  (-> fh ^sun.nio.fs.UnixFileAttributes attrs .isDirectory))
 
 (defn symbolic-link?
-  [fh]
-  (-> fh attrs .isSymbolicLink))
+  [^java.io.File fh]
+  (-> fh ^sun.nio.fs.UnixFileAttributes attrs .isSymbolicLink))
 
 (defn sizeof
-  [fh]
+  [^java.io.File fh]
   (-> fh .length))
 
 (defn filename
-  [fh]
+  [^java.io.File fh]
   (-> fh .getName))
 
 (defn stat-size
