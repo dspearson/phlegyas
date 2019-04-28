@@ -10,9 +10,6 @@
 
 (set! *warn-on-reflection* true)
 
-; for dynamic lookup and resolution of buffer reader functions.
-(def buffer-function-prefix "phlegyas.buffers/get-")
-
 ; protocol defaults
 (def protocol-version   "9P2000")
 (def notag                0xffff)

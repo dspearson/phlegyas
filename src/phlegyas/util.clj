@@ -3,6 +3,8 @@
             [buddy.core.codecs :refer :all])
   (:import java.nio.ByteBuffer))
 
+(set! *warn-on-reflection* true)
+
 (defmacro defn-frame-binding
   [name args body]
   `(defn ~name ~args (do (with-frame-bindings ~body))))

@@ -13,6 +13,8 @@
                      ushort->short
                      ulong->long]]))
 
+(set! *warn-on-reflection* true)
+
 (defmacro frame-length
   "Check reported frame length."
   [buffer]

@@ -7,6 +7,8 @@
                      long->ulong
                      ubyte->byte]]))
 
+(set! *warn-on-reflection* true)
+
 (defn get-short
   "Read short from the byte buffer."
   [^java.nio.ByteBuffer buffer]

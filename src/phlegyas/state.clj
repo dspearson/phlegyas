@@ -12,6 +12,8 @@
 
 ;; an example state machine
 
+(set! *warn-on-reflection* true)
+
 (defmacro iounit!
   []
   `(- (:msize ~'@state) 24))
