@@ -222,6 +222,8 @@
                     :atime    #'put-int
                     :mtime    #'put-int
                     :length   #'put-long
+                    :fsize    #'put-int
+                    :ftype    #'put-byte
                     :size     #'put-short
                     :ssize    #'put-short})
 

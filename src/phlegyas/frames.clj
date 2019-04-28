@@ -1,10 +1,8 @@
 (ns phlegyas.frames
   (:require [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
-            [phlegyas.buffers :refer :all]
             [clojure.core.async :as async]
             [manifold.deferred :as d]
-            [taoensso.timbre :as log]
             [manifold.stream :as s]
             [taoensso.timbre :as log]
             [primitive-math :as math
@@ -53,7 +51,7 @@
   [frame ftype]
   (let [frame-size (+ 5 (apply + (map count frame)))
         type-bytes (get frame-byte ftype)]
-    (cons (put-int frame-size) (cons (put-byte type-bytes) frame))))
+    (cons ((:fsize put-operation) frame-size) (cons ((:ftype put-operation) type-bytes) frame))))
 
 (defn assemble-packet
   [frame]
