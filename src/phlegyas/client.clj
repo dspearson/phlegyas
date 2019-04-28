@@ -10,6 +10,8 @@
 
 ;; an example implementation of a client.
 
+(set! *warn-on-reflection* true)
+
 (defn next-val
   "Find the smallest integer not currently in the atomic set, add it to the
   atomic set, and return the added value."
@@ -161,7 +163,7 @@
         data (read-fid connection fid-clone iounit)
         _ (clunk-fid connection fid-clone)
         layout (subvec (:Rstat frame-layouts) 2)
-        buf (wrap-buffer data)]
+        ^java.nio.ByteBuffer buf (wrap-buffer data)]
     (loop [stats {}]
       (if (= (.remaining buf) 0)
         stats

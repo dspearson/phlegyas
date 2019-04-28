@@ -205,7 +205,6 @@
                                   group "root"
                                   mode 0400
                                   write-fn function-call
-                                  additional-data nil
                                   append false}}]
   (synthetic-file filename owner group mode function-call write-fn metadata append))
 
@@ -226,10 +225,6 @@
   (let [fs-name (fid->fsname state fid)
         stat (into (fid->stat state fid) data)]
     (update-in state [:fs-map fs-name :files (keywordize (:qid-path stat))] (fn [x] (into x stat)))))
-
-(defn update-mapping
-  [state fid data]
-  (update-in state [:mapping (keywordize fid)] (fn [x] (into x data))))
 
 (defn-frame-binding example-read-write
   [& {:keys [connection frame stat]}]
