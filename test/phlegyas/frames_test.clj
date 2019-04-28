@@ -5,14 +5,16 @@
             [phlegyas.types :refer :all]
             [phlegyas.frames :refer :all]))
 
+(set! *warn-on-reflection* true)
+
 (defn read-vector
-  [v]
-  (with-open [in (io/input-stream v)]
+  [^java.io.File v]
+  (with-open [^java.io.BufferedInputStream in (io/input-stream v)]
     (let [buf (byte-array (.length v))]
       (.read in buf)
       buf)))
 
-(def vectors (vec (map (fn [x] [(.getName x) (read-vector x)]) (-> "vectors" io/resource .getPath io/file file-seq rest))))
+(def vectors (vec (map (fn [^java.io.File x] [(.getName x) (read-vector x)]) (-> "vectors" io/resource .getPath io/file file-seq rest))))
 
 (defn add-test
   [name ns test-fn & [metadata]]

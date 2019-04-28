@@ -6,6 +6,8 @@
             [phlegyas.types :refer :all]
             [phlegyas.client :refer :all]))
 
+(set! *warn-on-reflection* true)
+
 (def test-port 10003)
 
 (deftest version-negotiation
