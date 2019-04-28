@@ -191,39 +191,39 @@
                     :size     #'get-short
                     :ssize    #'get-short})
 
-(def put-operation {:version  #'string->bytes
-                    :name     #'string->bytes
-                    :uname    #'string->bytes
-                    :aname    #'string->bytes
-                    :muid     #'string->bytes
-                    :uid      #'string->bytes
-                    :gid      #'string->bytes
-                    :ename    #'string->bytes
-                    :nwqids   #'qid->bytes
-                    :wnames   #'wname->bytes
-                    :data     #'bytecoll->bytes
-                    :tag      #'short->bytes
-                    :oldtag   #'short->bytes
-                    :fid      #'int->bytes
-                    :afid     #'int->bytes
-                    :newfid   #'int->bytes
-                    :msize    #'int->bytes
-                    :perm     #'int->bytes
-                    :iounit   #'int->bytes
-                    :iomode   #'byte->bytes
-                    :offset   #'long->bytes
-                    :count    #'int->bytes
-                    :type     #'short->bytes
-                    :dev      #'int->bytes
-                    :qid-type #'byte->bytes
-                    :qid-vers #'int->bytes
-                    :qid-path #'long->bytes
-                    :mode     #'int->bytes
-                    :atime    #'int->bytes
-                    :mtime    #'int->bytes
-                    :length   #'long->bytes
-                    :size     #'short->bytes
-                    :ssize    #'short->bytes})
+(def put-operation {:version  #'put-string
+                    :name     #'put-string
+                    :uname    #'put-string
+                    :aname    #'put-string
+                    :muid     #'put-string
+                    :uid      #'put-string
+                    :gid      #'put-string
+                    :ename    #'put-string
+                    :nwqids   #'put-qid
+                    :wnames   #'put-wname
+                    :data     #'put-bytecoll
+                    :tag      #'put-short
+                    :oldtag   #'put-short
+                    :fid      #'put-int
+                    :afid     #'put-int
+                    :newfid   #'put-int
+                    :msize    #'put-int
+                    :perm     #'put-int
+                    :iounit   #'put-int
+                    :iomode   #'put-byte
+                    :offset   #'put-long
+                    :count    #'put-int
+                    :type     #'put-short
+                    :dev      #'put-int
+                    :qid-type #'put-byte
+                    :qid-vers #'put-int
+                    :qid-path #'put-long
+                    :mode     #'put-int
+                    :atime    #'put-int
+                    :mtime    #'put-int
+                    :length   #'put-long
+                    :size     #'put-short
+                    :ssize    #'put-short})
 
 ;; we iterate over the keys in the buffer-operator map, and resolve functions for reading them.
 (def reverse-frame-byte      (reverse-map frame-byte))

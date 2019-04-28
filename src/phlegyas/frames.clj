@@ -53,7 +53,7 @@
   [frame ftype]
   (let [frame-size (+ 5 (apply + (map count frame)))
         type-bytes (get frame-byte ftype)]
-    (cons (int->bytes frame-size) (cons (byte->bytes type-bytes) frame))))
+    (cons (put-int frame-size) (cons (put-byte type-bytes) frame))))
 
 (defn assemble-packet
   [frame]

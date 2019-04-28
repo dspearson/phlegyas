@@ -71,28 +71,28 @@
     (.get buffer data 0 size)
     data))
 
-(defn short->bytes
+(defn put-short
   [x]
   (let [data (byte-array 2)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putShort buffer (ushort->short x))
     data))
 
-(defn int->bytes
+(defn put-int
   [x]
   (let [data (byte-array 4)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putInt buffer (uint->int x))
     data))
 
-(defn long->bytes
+(defn put-long
   [x]
   (let [data (byte-array 8)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putLong buffer (ulong->long x))
     data))
 
-(defn string->bytes
+(defn put-string
   [x]
   (let [string-bytes (.getBytes ^String x "UTF-8")
         string-size (count string-bytes)
@@ -103,7 +103,7 @@
       (.put string-bytes))
     data))
 
-(defn byte->bytes
+(defn put-byte
   [x]
   (let [data (byte-array 1)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -111,7 +111,7 @@
       (.put (ubyte->byte x)))
     data))
 
-(defn wname->bytes
+(defn put-wname
   [x]
   (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes ^String x "UTF-8")))) x)))
         num-of-elements (count x)
@@ -124,7 +124,7 @@
         (.put buffer string-bytes)))
     data))
 
-(defn qid->bytes
+(defn put-qid
   [x]
   (let [num-of-elements (count x)
         data (byte-array (+ 2 (* 13 num-of-elements)))
@@ -137,7 +137,7 @@
         (.putLong buffer (ulong->long (:qid-path qid)))))
     data))
 
-(defn bytecoll->bytes
+(defn put-bytecoll
   [x]
   (let [size (count x)
         data (byte-array 4)
@@ -145,4 +145,3 @@
     (doto buffer
       (.putInt size))
     [data x]))
-
