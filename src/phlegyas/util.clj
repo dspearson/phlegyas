@@ -55,6 +55,14 @@
           ~'path (:path ~'mapping)]
       (~@body))))
 
+(defmacro with-buffer
+  [size & body]
+  `(let [storage# (byte-array ~size)
+         ^java.nio.ByteBuffer buffer# (wrap-buffer storage#)]
+     (doto ^java.nio.ByteBuffer buffer#
+       ~@body)
+     storage#))
+
 (defmacro with-server
   "Helper macro for tests and one-off connections."
   [server & body]

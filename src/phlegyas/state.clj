@@ -67,7 +67,7 @@
                                 (add-mapping frame-newfid fs-name path)))
              :reply {:nwqids []}})
     (let [wname-paths (walk-path fs path frame-wnames)
-          qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
+          qids (vec (for [p wname-paths] (stat->qid (path->stat fs p))))]
       (if (< (count wname-paths) (count frame-wnames))
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x
@@ -181,12 +181,11 @@
   acknowledgement of a previous action has been sent. Therefore, this can be
   executed asynchronously inside a future."
   [frame connection out]
-  (log/debug (:transaction-id frame) "state-handler")
-  (log/trace (:transaction-id frame) "in:" frame)
+  (log/debug (:transaction-id frame) "in:" frame)
   (conj-val (:in-flight-requests connection) (:tag frame))
   (let [reply (((:frame frame) state-handlers) frame connection)]
     (log/trace (:transaction-id frame) "state:" @(:state connection))
-    (log/trace (:transaction-id frame) "out:" reply)
+    (log/debug (:transaction-id frame) "out:" reply)
     (s/put! out reply)
     (disj-val (:in-flight-requests connection) (:tag frame))))
 

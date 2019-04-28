@@ -165,7 +165,7 @@
     (loop [stats {}]
       (if (= (.remaining buf) 0)
         stats
-        (let [y (into {} (for [elem layout] {elem ((elem buffer-functions) buf)}))]
+        (let [y (into {} (for [elem layout] {elem ((elem get-operation) buf)}))]
           (recur (assoc stats (:qid-path y) y)))))))
 
 (defn open-and-read-fid

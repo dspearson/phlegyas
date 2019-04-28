@@ -3,7 +3,6 @@
             [clojure.java.io :as io]
             [phlegyas.types :refer :all]
             [phlegyas.util :refer :all]
-            [phlegyas.transformers :refer :all]
             [clojure.string :as string]
             [clojure.set :as sets]
             [primitive-math :as math
@@ -363,7 +362,7 @@
 
         :else
         (let [stat (path->stat fs (get paths (first paths-remaining)))
-              data (transform stat layout)]
+              data (for [typ layout] ((get put-operation typ) (get stat typ)))]
           (recur (conj accum data)
                  (:qid-path stat)
                  (+ data-size (count data))

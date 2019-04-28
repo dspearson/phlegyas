@@ -1,7 +1,7 @@
 (ns phlegyas.frames
   (:require [phlegyas.util :refer :all]
             [phlegyas.types :refer :all]
-            [phlegyas.transformers :refer :all]
+            [phlegyas.buffers :refer :all]
             [clojure.core.async :as async]
             [manifold.deferred :as d]
             [taoensso.timbre :as log]
@@ -30,16 +30,16 @@
   "Takes in a byte-array, and attempts to decode it. Produces a map, matching that
   of the message type found in the `phlegyas.types` namespace."
   [packet & [uuid]]
+  (log/debug uuid "disassemble-packet")
   (let [start (System/nanoTime)
         ^java.nio.ByteBuffer frame (wrap-buffer packet)
         len (uint->int (frame-length frame))
         frame-typ (frame-type frame)
         layout (get frame-layouts frame-typ)
-        data (into {:frame frame-typ :transaction-id uuid} (for [typ layout] {typ ((get buffer-functions typ) frame)}))
+        data (into {:frame frame-typ :transaction-id uuid} (for [typ layout] {typ ((get get-operation typ) frame)}))
         end (System/nanoTime)]
-    (log/debug uuid "disassemble-packet")
     (if (> (/ (- end start) 1000) 1000)
-      (log/debug uuid "disassemble time:" (float (/ (- end start) 100000000)) "seconds" ":" frame))
+      (log/debug uuid "disassemble time:" (float (/ (- end start) 1000000)) "msecs" ":" frame))
     data))
 
 (defn assemble
@@ -49,40 +49,29 @@
   it as `buffer`, and using ByteBuffer operations to populate `frame-byte`, finally
   returning the assembled output."
   [frame ftype]
-  (let [frame-size (uint->int (+ 5 (count frame)))
-        type-bytes (get frame-byte ftype)
-        frame-byte (byte-array frame-size)
-        ^java.nio.ByteBuffer buffer (wrap-buffer frame-byte)]
-    (doto buffer
-      (^Integer .putInt frame-size)
-      (.put (byte type-bytes))
-      (.put ^bytes frame))
-    frame-byte))
+  (let [frame-size (+ 5 (apply + (map count frame)))
+        type-bytes (get frame-byte ftype)]
+    (cons (int->bytes frame-size) (cons (byte->bytes type-bytes) frame))))
 
 (defn assemble-packet
-  "`frame` is a map consisting of all the data required to assemble the final byte-array.
-  The keys required are found in the `phlegyas.types` namespace. The layout is a list of
-  ordered items representing each element of the frame.
-
-  We feed `frame` into `transform`, which takes a frame and layout, then `flatten`, `pack`,
-  and finally `assemble`."
   [frame]
+  (log/trace (:transaction-id frame) "assemble-packet")
+  (log/trace (:transaction-id frame) frame)
   (let [start (System/nanoTime)
         uuid (:transaction-id frame)
         ftype (:frame frame)
         layout (get frame-layouts ftype)
-        data (-> frame (transform layout) flatten pack (assemble ftype))
+        data (-> (for [typ layout] ((get put-operation typ) (get frame typ))) flatten (assemble ftype) pack)
         end (System/nanoTime)]
-    (log/debug uuid "assemble-packet")
-    (if (> (/ (- end start) 1000) 1000)
-      (log/debug uuid "assemble time:" (float (/ (- end start) 100000000)) "seconds" ":" frame))
+    (if (> (/ (- end start) 1000000) 100)
+      (log/debug uuid "slow assemble time:" (float (/ (- end start) 1000000)) "msecs" ":" frame))
     data))
 
 (defn dispatch-frame
   "Cuts frames along their boundaries, returning any partially assembled packets back to
   the frame loop."
   [packet out uuid]
-  (log/debug uuid "dispatch-frame")
+  (log/trace uuid "dispatch-frame")
   (loop [x packet]
     (if (< (count x) 4)
       (vec x)
@@ -102,9 +91,9 @@
             uuid (uuid!)
             partial (dispatch-frame packet out uuid)
             end (System/nanoTime)]
-        (log/debug uuid "frame assembler")
-        (if (> (/ (- end start) 1000) 1000)
-          (log/debug uuid "dispatch-frame time:" (float (/ (- end start) 100000000)) "seconds"))
+        (log/trace uuid "frame assembler")
+        (if (> (/ (- end start) 1000000) 100)
+          (log/debug uuid "slow dispatch-frame time:" (float (/ (- end start) 1000000)) "msecs"))
         (if (s/closed? in)
           (s/close! out)
           (recur (vec (mapcat seq [partial @(s/take! in)]))))))))

@@ -1,23 +1,26 @@
 (ns phlegyas.buffers
-  (:require [primitive-math :as math
+  (:require [phlegyas.util :refer :all]
+            [taoensso.timbre :as log]
+            [primitive-math :as math
              :refer [int->uint
                      short->ushort
-                     long->ulong]]))
+                     long->ulong
+                     ubyte->byte]]))
 
-(defn get-tag
-  "Read tag[2] from the byte buffer."
+(defn get-short
+  "Read short from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (-> buffer ^Short .getShort short->ushort))
 
-(defn get-oldtag
-  "Read oldtag[2] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Short .getShort short->ushort))
-
-(defn get-msize
-  "Read msize[4] from the byte buffer."
+(defn get-int
+  "Read integer from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (-> buffer ^Integer .getInt int->uint))
+
+(defn get-long
+  "Read long from the byte buffer."
+  [^java.nio.ByteBuffer buffer]
+  (-> buffer ^Long .getLong long->ulong))
 
 (defn get-string
   "Read string[s] from the byte buffer."
@@ -25,149 +28,10 @@
   (let [string-size (-> buffer ^Short .getShort short->ushort)]
     (String. (byte-array (map byte (for [i (range string-size)] (^Byte .get buffer)))) "UTF-8")))
 
-(defn get-version
-  "Read version[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-uname
-  "Read uname[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-aname
-  "Read aname[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-ename
-  "Read ename[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-fid
-  "Read fid[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-newfid
-  "Read newfid[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-afid
-  "Read afid[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-perm
-  "Read perm[4] from the byte buffer"
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-offset
-  "Read offset[8] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Long .getLong long->ulong))
-
-(defn get-count
-  "Read count[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-size
-  "Read size[2] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Short .getShort short->ushort))
-
-(defn get-ssize
-  "Read size[2] from the byte buffer. Rstat and Twstat have repeated
-  size field, with our ssize being +2 more than size.
-
-  See BUGS section of stat(9) manual for more information."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Short .getShort short->ushort))
-
-(defn get-type
-  "Read type[2] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Short .getShort short->ushort))
-
-(defn get-dev
-  "Read dev[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-qid-type
-  "Read qid.type[1] from the byte buffer."
+(defn get-byte
+  "Read byte from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (-> buffer ^Byte .get))
-
-(defn get-qid-vers
-  "Read qid.vers[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-qid-path
-  "Read qid.path[8] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Long .getLong long->ulong))
-
-(defn get-mode
-  "Read mode[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-atime
-  "Read atime[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-mtime
-  "Read mtime[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-length
-  "Read length[8] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Long .getLong long->ulong))
-
-(defn get-name
-  "Read name[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-uid
-  "Read uid[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-gid
-  "Read gid[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-muid
-  "Read muid[s] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (get-string buffer))
-
-(defn get-iomode
-  "Read mode[1] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Byte .get))
-
-(defn get-iounit
-  "Read iounit[4] from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (-> buffer ^Integer .getInt int->uint))
-
-(defn get-data
-  "Read count[4] bytes of data from the byte buffer."
-  [^java.nio.ByteBuffer buffer]
-  (let [data-size (-> buffer ^Integer .getInt int->uint)]
-    (byte-array (map byte (for [i (range data-size)] (^Byte .get buffer))))))
 
 (defn get-wnames
   "Read nwname[2] of wname[s] from the byte buffer."
@@ -175,7 +39,7 @@
   (let [nwname (-> buffer ^Short .getShort short->ushort)]
     (if (= nwname 0)
       []
-      (loop [wnames '()
+      (loop [wnames []
              count nwname]
         (if (= count 0)
           wnames
@@ -191,5 +55,88 @@
              count nwqid]
         (if (= count 0)
           qids
-          (recur (conj qids {:qid-type (get-qid-type buffer) :qid-vers (get-qid-vers buffer) :qid-path (get-qid-path buffer)})
+          (recur (conj qids {:qid-type (get-byte buffer) :qid-vers (get-int buffer) :qid-path (get-long buffer)})
                  (- count 1)))))))
+
+(defn get-data
+  [^java.nio.ByteBuffer buffer]
+  (let [size (get-int buffer)
+        data (byte-array size)]
+    (.get buffer data 0 size)
+    data))
+
+(defn short->bytes
+  [x]
+  (let [data (byte-array 2)
+        buffer (wrap-buffer data)]
+    (.putShort buffer x)
+    data))
+
+(defn int->bytes
+  [x]
+  (let [data (byte-array 4)
+        buffer (wrap-buffer data)]
+    (.putInt buffer x)
+    data))
+
+(defn long->bytes
+  [x]
+  (let [data (byte-array 8)
+        buffer (wrap-buffer data)]
+    (.putLong buffer x)
+    data))
+
+(defn string->bytes
+  [x]
+  (let [string-bytes (.getBytes x "UTF-8")
+        string-size (count string-bytes)
+        data (byte-array (+ 2 string-size))
+        buffer (wrap-buffer data)]
+    (doto buffer
+      (.putShort string-size)
+      (.put string-bytes))
+    data))
+
+(defn byte->bytes
+  [x]
+  (let [data (byte-array 1)
+        buffer (wrap-buffer data)]
+    (doto buffer
+      (.put (byte x)))
+    data))
+
+(defn wname->bytes
+  [x]
+  (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes x "UTF-8")))) x)))
+        num-of-elements (count x)
+        data (byte-array buffer-size)
+        buffer (wrap-buffer data)]
+    (.putShort buffer num-of-elements)
+    (dotimes [n num-of-elements]
+      (let [string-bytes (.getBytes (get x n) "UTF-8")]
+        (.putShort buffer (count string-bytes))
+        (.put buffer string-bytes)))
+    data))
+
+(defn qid->bytes
+  [x]
+  (let [num-of-elements (count x)
+        data (byte-array (+ 2 (* 13 num-of-elements)))
+        buffer (wrap-buffer data)]
+    (.putShort buffer num-of-elements)
+    (dotimes [n num-of-elements]
+      (let [qid (get x n)]
+        (.put buffer (:qid-type qid))
+        (.putInt buffer (:qid-vers qid))
+        (.putLong buffer (:qid-path qid))))
+    data))
+
+(defn bytecoll->bytes
+  [x]
+  (let [size (count x)
+        data (byte-array 4)
+        buffer (wrap-buffer data)]
+    (doto buffer
+      (.putInt size))
+    [data x]))
+
