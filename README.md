@@ -8,8 +8,6 @@
 
 *WARNING: DRAGONS LIE AHEAD! THIS IS WOEFULLY INCOMPLETE. USE AT YOUR OWN PERIL!*
 
-*There are major problems with this implementation currently, mostly centred around function call overhead and use of lazy sequences. It is functional, but slow. Optimisation is ongoing.*
-
 The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space](https://9fans.github.io/plan9port/man/man9/) project.
 
 I have copied the test resources from [droyo's styx package](https://github.com/droyo/styx/), credit due for making it available.

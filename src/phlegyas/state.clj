@@ -69,7 +69,7 @@
                                 (add-mapping frame-newfid fs-name path)))
              :reply {:nwqids []}})
     (let [wname-paths (walk-path fs path frame-wnames)
-          qids (vec (for [p wname-paths] (stat->qid (path->stat fs p))))]
+          qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
       (if (< (count wname-paths) (count frame-wnames))
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x

@@ -131,7 +131,7 @@
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (^Short .putShort buffer num-of-elements)
     (dotimes [n num-of-elements]
-      (let [qid (get x n)]
+      (let [qid (nth x n)]
         (.put buffer (ubyte->byte (:qid-type qid)))
         (.putInt buffer (uint->int (:qid-vers qid)))
         (.putLong buffer (ulong->long (:qid-path qid)))))
