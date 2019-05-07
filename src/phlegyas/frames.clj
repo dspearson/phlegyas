@@ -45,15 +45,15 @@
 (defn assemble
   "Takes in a frame and frame type, calculates the final size of the frame
   by adding 5, 4 bytes for the size and 1 byte for the type, looking up `type-bytes`
-  from the `phlegyas.types` namespace, allocating `frame-byte` as a byte-array, wrapping
-  it as `buffer`, and using ByteBuffer operations to populate `frame-byte`, finally
-  returning the assembled output."
+  from the `phlegyas.types` namespace, and adding the size and type to the sequence."
   [frame ftype]
   (let [frame-size (+ 5 (apply + (map count frame)))
         type-bytes (get frame-byte ftype)]
     (cons ((:fsize put-operation) frame-size) (cons ((:ftype put-operation) type-bytes) frame))))
 
 (defn assemble-packet
+  "Takes in a map representing a frame (see `frame-layouts` in the `phlegyas.types` namespace, and
+  intro(9P) manual), and encodes it."
   [frame]
   (log/trace (:transaction-id frame) "assemble-packet")
   (log/trace (:transaction-id frame) frame)

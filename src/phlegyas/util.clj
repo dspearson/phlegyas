@@ -5,6 +5,8 @@
 
 (set! *warn-on-reflection* true)
 
+;; i'm not happy with this yet. it doesn't handle multiple forms correctly,
+;; nor docstrings. help appreciated.
 (defmacro defn-frame-binding
   [name args body]
   `(defn ~name ~args (do (with-frame-bindings ~body))))

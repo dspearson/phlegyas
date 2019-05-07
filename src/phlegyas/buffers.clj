@@ -65,6 +65,7 @@
                  (- count 1)))))))
 
 (defn get-data
+  "Read data[count] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (let [size (get-int buffer)
         data (byte-array size)]
@@ -72,6 +73,7 @@
     data))
 
 (defn put-short
+  "Wrap short in a byte-array."
   [x]
   (let [data (byte-array 2)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -79,6 +81,7 @@
     data))
 
 (defn put-int
+  "Wrap int in a byte-array."
   [x]
   (let [data (byte-array 4)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -86,6 +89,7 @@
     data))
 
 (defn put-long
+  "Wrap long in a byte-array."
   [x]
   (let [data (byte-array 8)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -93,6 +97,7 @@
     data))
 
 (defn put-string
+  "Wrap 9P string[s] in a byte-array."
   [x]
   (let [string-bytes (.getBytes ^String x "UTF-8")
         string-size (count string-bytes)
@@ -104,6 +109,7 @@
     data))
 
 (defn put-byte
+  "Wrap byte in a byte-array."
   [x]
   (let [data (byte-array 1)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -112,6 +118,8 @@
     data))
 
 (defn put-wname
+  "Wrap nwname*wname in a byte-array. Prepends the data with a short,
+  representing the number of elements in the data."
   [x]
   (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes ^String x "UTF-8")))) x)))
         num-of-elements (count x)
@@ -125,6 +133,8 @@
     data))
 
 (defn put-qid
+  "Wrap nwqid*wqid in a byte-array. Prepends the data with a short,
+  representing the number of elements in the data."
   [x]
   (let [num-of-elements (count x)
         data (byte-array (+ 2 (* 13 num-of-elements)))
@@ -138,6 +148,8 @@
     data))
 
 (defn put-bytecoll
+  "Wrap a 9P byte collection in byte-array. Prepends the data with an integer representing
+  the byte count of the data."
   [x]
   (let [size (count x)
         data (byte-array 4)
