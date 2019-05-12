@@ -178,8 +178,9 @@
 
 ;; Tcreate:
 ;; rudimentary example of file creation. all new files are initialised with the
-;; `create-synthetic-file` function call, which returns a stat record, with a
-;; read+write function set to `example-function-for-files`.
+;; `synthetic-file` function call, which returns a stat record, with a read/write
+;; function set to `example-function-for-files`.
+;;
 ;; we also need to fetch the stat of the parent directory the file is being
 ;; created in, and need to add the new stat path to its map of children.
 ;; the path for the new file is chosen by calling `next-available-path`, which
@@ -190,7 +191,7 @@
 ;; reply with the qid of the new file, and the iounit (calculated using `iounit!`)
 (defn-frame-binding Tcreate
   [frame connection]
-  (let [new-stat (create-synthetic-file frame-name #'example-function-for-files)
+  (let [new-stat (synthetic-file frame-name :read-fn #'example-function-for-files)
         parent-stat (fid->stat current-state frame-fid)
         parent-path (:parent parent-stat)
         file-path (next-available-path fs)]

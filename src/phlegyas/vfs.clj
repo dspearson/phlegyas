@@ -198,7 +198,8 @@
 
 (defn synthetic-file
   "Create a synthetic file stat."
-  [filename owner group mode read-fn write-fn metadata append]
+  [filename & {:keys [owner group mode read-fn write-fn metadata append]
+               :or {owner "root" group "root" mode 0400 append false}}]
   (let [size (stat-size filename owner group owner)]
     (map->stat {:qid-type (if append (:append qt-mode) (:file qt-mode))
                 :qid-vers 0
@@ -217,7 +218,7 @@
                 :size size
                 :children #{}
                 :metadata metadata
-                :write-fn write-fn
+                :write-fn (or write-fn read-fn)
                 :read-fn read-fn})))
 
 (defn-frame-binding example-function-for-files
@@ -225,16 +226,6 @@
   (if (> frame-offset 0)
     (byte-array 0)
     (.getBytes "hello, world!\n" "UTF-8")))
-
-;; probably should ditch this for `synthetic-file`
-(defn create-synthetic-file
-  [filename function-call & {:keys [owner group mode metadata append write-fn]
-                             :or {owner "root"
-                                  group "root"
-                                  mode 0400
-                                  write-fn function-call
-                                  append false}}]
-  (synthetic-file filename owner group mode function-call write-fn metadata append))
 
 (defn fid->stat
   "Get the stat corresponding to the fid in the current state of the connection."
@@ -287,10 +278,10 @@
   []
   (let [root-fs (create-filesystem)
         root-path :0
-        another-example-file (create-synthetic-file "current-time" #'print-current-time :metadata {:time 0} :append true)]
+        another-example-file (synthetic-file "current-time" :read-fn #'print-current-time :metadata {:time 0} :append true)]
     (-> root-fs
-        (insert-file root-path (create-synthetic-file "write-to-me" #'example-read-write :write-fn #'example-read-write))
-        (insert-file root-path (create-synthetic-file "example-file" #'example-function-for-files))
+        (insert-file root-path (synthetic-file "write-to-me" :read-fn #'example-read-write))
+        (insert-file root-path (synthetic-file "example-file" :read-fn #'example-function-for-files))
         (insert-file root-path another-example-file))))
 
 (defn add-fs
