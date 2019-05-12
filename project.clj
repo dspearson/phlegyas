@@ -12,8 +12,7 @@
                  [org.clojure/core.incubator "0.1.4"]
                  [com.taoensso/timbre "4.10.0"]]
   :plugins [[cider/cider-nrepl "0.21.1"]
-            [jonase/eastwood "0.3.5"]
-            [lein-marginalia "0.9.1"]]
+            [jonase/eastwood "0.3.5"]]
   :main ^:skip-aot phlegyas.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
