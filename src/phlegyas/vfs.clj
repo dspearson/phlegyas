@@ -6,10 +6,7 @@
             [clojure.string :as string]
             [clojure.set :as sets]
             [primitive-math :as math
-             :refer [int->uint short->ushort
-                     uint->int ushort->short
-                     long->ulong ulong->long]]
-            [taoensso.timbre :as log])
+             :refer [uint->int ulong->long]])
   (:import [java.nio.file Files LinkOption]
            [java.nio.file.attribute BasicFileAttributes PosixFilePermission PosixFilePermissions PosixFileAttributes]))
 

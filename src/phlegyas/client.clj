@@ -1,7 +1,6 @@
 (ns phlegyas.client
   (:require [clojure.set :as sets]
             [manifold.stream :as s]
-            [taoensso.timbre :as log]
             [manifold.deferred :as d]
             [clojure.string :as cs]
             [aleph.tcp :as tcp]

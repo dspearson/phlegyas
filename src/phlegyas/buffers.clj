@@ -1,14 +1,10 @@
 (ns phlegyas.buffers
   (:require [phlegyas.util :refer :all]
-            [taoensso.timbre :as log]
             [primitive-math :as math
-             :refer [int->uint
-                     uint->int
+             :refer [uint->int
                      short->ushort
                      ushort->short
-                     long->ulong
                      ulong->long
-                     byte->ubyte
                      ubyte->byte]]))
 
 (set! *warn-on-reflection* true)

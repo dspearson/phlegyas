@@ -7,8 +7,7 @@
             [clojure.core.async :as async]
             [manifold.stream :as s]
             [manifold.deferred :as d]
-            [aleph.tcp :as tcp]
-            [taoensso.timbre :as log])
+            [aleph.tcp :as tcp])
   (:gen-class))
 
 (defn server!
@@ -28,8 +27,6 @@
     (s/connect-via outgoing-frame-stream #(s/put! out (assemble-packet %)) out)
     (consume incoming-frame-stream outgoing-frame-stream connection #'state-handler)
     connection))
-
-(log/set-level! :info)
 
 (def srv nil)
 
