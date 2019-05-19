@@ -36,6 +36,7 @@
                                   :uname parent-uname})))))
 
 (defn tag-and-assemble
+  "Add a tag to the request, and assemble it into a byte-array."
   [x in-flight-requests tagpool]
   (let [frame (:frame x)
         response (:response x)
@@ -53,6 +54,7 @@
     response))
 
 (defn reset-connection
+  "Reset the connection atom to an empty state."
   [connection]
   (reset! (:mapping connection) {})
   (reset! (:open-fids connection) {})
@@ -63,6 +65,7 @@
   (reset! (:protocol-version connection) nil))
 
 (defn negotiate-version
+  "9P version negotiation. Takes a connection map and modifies it appropriately."
   [connection]
   (reset-connection connection) ;; a version request restarts a connection.
   (let [response @(transact connection {:frame :Tversion :msize max-message-size :version protocol-version})]
@@ -71,9 +74,10 @@
         (reset! (:maximum-message-size connection) (:msize response))
         (reset! (:protocol-version connection) (:version response))
         (:version response))
-      false)))
+      (throw (Exception. "protocol negotiation failed.")))))
 
 (defn attach-filesystem
+  "Attach a filesystem. Requires a version to be negotiated first."
   ([connection]
    (attach-filesystem connection "nobody" ""))
 
@@ -81,18 +85,21 @@
    (attach-filesystem connection uname ""))
 
   ([connection uname aname]
-   (let [fid-pool (:fid-pool connection)
-         attach-fid (next-val fid-pool)
-         response @(transact connection {:frame :Tattach :uname uname :aname aname :fid attach-fid :afid nofid})]
-     (if (= (:frame response) :Rattach)
-       (do
-         (assoc-val (:mapping connection) attach-fid {:name "/" :uname uname})
-         attach-fid)
-       (do
-         (disj-val fid-pool attach-fid)
-         false)))))
+   (if (nil? @(:protocol-version connection))
+     (throw (Exception. "no protocol negotiated yet."))
+     (let [fid-pool (:fid-pool connection)
+           attach-fid (next-val fid-pool)
+           response @(transact connection {:frame :Tattach :uname uname :aname aname :fid attach-fid :afid nofid})]
+       (if (= (:frame response) :Rattach)
+         (do
+           (assoc-val (:mapping connection) attach-fid {:name "/" :uname uname})
+           attach-fid)
+         (do
+           (disj-val fid-pool attach-fid)
+           false))))))
 
 (defn clone-fid
+  "Takes a connection and a fid, and clones it. Returns the new fid."
   [connection fs-handle]
   (let [fid-pool (:fid-pool connection)
         requested-fid (next-val fid-pool)
@@ -103,33 +110,49 @@
         requested-fid)
       (do
         (disj-val fid-pool requested-fid)
-        false))))
+        (throw (Exception. "unable to clone fid."))))))
 
 (defn walk-fid
+  "Takes a connection, fid, and a vector of paths to walk. If successful, returns the new fid."
   [connection fs-handle paths]
   (let [fid-pool (:fid-pool connection)
         requested-fid (next-val fid-pool)
         response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames paths})]
-    (if (and (= (:frame response) :Rwalk) (= (count (:nwqids response)) (count paths)))
+    (cond
+      (not (= (:frame response) :Rwalk))
+      (throw (Exception. "unable to walk."))
+
+      (and (= (:frame response) :Rwalk) (= (count (:nwqids response)) (count paths)))
       (do
         (add-child-mapping (:mapping connection) fs-handle requested-fid paths)
         requested-fid)
+
+      :else
       (do
         (disj-val fid-pool requested-fid)
         false))))
 
 (defn open-fid
+  "Takes a connection, fid, and iomode. Returns the iounit for reading."
   [connection fid iomode]
   (let [response @(transact connection {:frame :Topen :fid fid :iomode iomode})]
-    (assoc-val (:open-fids connection) fid {:iomode iomode :iounit (:iounit response)})
-    (:iounit response)))
+    (if (= (:frame response) :Ropen)
+      (do
+        (assoc-val (:open-fids connection) fid {:iomode iomode :iounit (:iounit response)})
+        (:iounit response))
+      (throw (Exception. "unable to open fid.")))))
+
 
 (defn read-fid-partial
+  "Takes a connection, fid, offset, and iounit. Returns data."
   [connection fid offset iounit]
   (let [response @(transact connection {:frame :Tread :fid fid :offset offset :count iounit})]
-    (:data response)))
+    (if (= (:frame response) :Tread)
+      (:data response)
+      (throw (Exception. "unable to read fid.")))))
 
 (defn clunk-fid
+  "Takes a connection and fid. If successful, returns true."
   [connection fid]
   (let [response @(transact connection {:frame :Tclunk :fid fid})]
     (if (= (:frame response) :Rclunk)
@@ -138,16 +161,18 @@
         (dissoc-val (:open-fids connection) fid)
         (dissoc-val (:mapping connection) fid)
         true)
-      false)))
+      (throw (Exception. "unable to clunk fid.")))))
 
 (defn remove-fid
+  "Takes a connection and a fid. If successful, returns true."
   [connection fid]
   (let [response @(transact connection {:frame :Tremove :fid fid})]
     (if (= (:frame response) :Rremove)
       true
-      false)))
+      (throw (Exception. "unable to remove fid.")))))
 
 (defn read-fid
+  "Takes a connection, fid, and iounit. If successful, returns the read data."
   [connection fid iounit]
   (loop [offset 0
          buf []]
@@ -157,6 +182,8 @@
         (recur (+ offset (count data)) (conj buf data))))))
 
 (defn read-dir-contents
+  "Takes a connection, and a fid representing a directory. Returns a map of stats,
+  with keys representing the qid-path of the stat."
   [connection fid]
   (let [fid-clone (clone-fid connection fid)
         iounit (open-fid connection fid-clone 0)
@@ -171,6 +198,8 @@
           (recur (assoc stats (:qid-path y) y)))))))
 
 (defn open-and-read-fid
+  "Takes a connection and a fid. Clones the fid, opens for reading, fetches the data,
+  and clunks. Returns the data read."
   [connection fid]
   (let [fid-clone (clone-fid connection fid)
         io-unit (open-fid connection fid-clone 0)
@@ -179,6 +208,8 @@
     data))
 
 (defn lsdir
+  "Takes a connection and a fid. Returns all children within the directory
+  represented by fid."
   [connection fid]
   (let [data (read-dir-contents connection fid)]
     (for [k (keys data)]
@@ -213,6 +244,9 @@
      :frame-assembler frame-assembler-thread}))
 
 (defn connect
+  "Connect to a host on a given port, optionally specifying the user and
+  attaching filesystem. Negotiates the protocol version and attaches the
+  filesystem. Returns a connection map."
   ([host port]
    (connect host port "nobody" ""))
 
