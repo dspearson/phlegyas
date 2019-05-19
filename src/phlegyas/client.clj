@@ -147,7 +147,7 @@
   "Takes a connection, fid, offset, and iounit. Returns data."
   [connection fid offset iounit]
   (let [response @(transact connection {:frame :Tread :fid fid :offset offset :count iounit})]
-    (if (= (:frame response) :Tread)
+    (if (= (:frame response) :Rread)
       (:data response)
       (throw (Exception. "unable to read fid.")))))
 
