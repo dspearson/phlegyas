@@ -9,6 +9,8 @@
                  [aleph "0.4.6"]
                  [com.taoensso/timbre "4.10.0"]
                  [buddy/buddy-core "1.4.0"]
+                 [org.clojure/java.jdbc "0.7.9"]
+                 [org.xerial/sqlite-jdbc "3.27.2.1"]
                  [org.clojure/core.incubator "0.1.4"]]
   :plugins [[cider/cider-nrepl "0.21.1"]
             [jonase/eastwood "0.3.5"]]
