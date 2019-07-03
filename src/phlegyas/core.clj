@@ -28,7 +28,8 @@
     (consume incoming-frame-stream outgoing-frame-stream connection #'state-handler)
     connection))
 
-(def srv nil)
+(defonce srv (atom nil))
+(defonce global-connections (atom {}))
 
 (defn tcp-route
   [s info]
@@ -40,15 +41,14 @@
 
 (defn go
   []
-  (def global-connections (atom {}))
-  (def srv (tcp/start-server tcp-route {:port 10001 :join? false})))
+  (reset! srv (tcp/start-server tcp-route {:port 10001 :join? false})))
 
 (defn r
   []
-  (if (nil? srv)
+  (if (nil? @srv)
     (go)
     (do
-      (.close srv)
+      (.close @srv)
       (go))))
 
 (defn dial
