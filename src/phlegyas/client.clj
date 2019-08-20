@@ -106,7 +106,7 @@
         response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames []})]
     (if (= (:frame response) :Rwalk)
       (do
-        (assoc-val (:mapping connection) requested-fid (get (:mapping connection) fs-handle))
+        (assoc-val (:mapping connection) requested-fid (get @(:mapping connection) fs-handle))
         requested-fid)
       (do
         (disj-val fid-pool requested-fid)
