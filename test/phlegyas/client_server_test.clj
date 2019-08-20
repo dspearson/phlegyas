@@ -21,6 +21,14 @@
           cloned-fid (clone-fid connection 0)]
       (is (= cloned-fid 1)))))
 
+(deftest clone-fid-returns-correct-map
+  (with-server (tcp/start-server pc/tcp-route {:port test-port :join? false})
+    (let [connection (connect "localhost" test-port)
+          fid-info (get @(:mapping connection) 0)
+          cloned-fid (clone-fid connection 0)
+          cloned-fid-info (get @(:mapping connection) cloned-fid)]
+      (is (= fid-info cloned-fid-info)))))
+
 (deftest reading-directory
   (with-server (tcp/start-server pc/tcp-route {:port test-port :join? false})
     (let [connection (connect "localhost" test-port)
