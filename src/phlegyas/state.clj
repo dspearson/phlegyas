@@ -153,7 +153,7 @@
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x
                                     (add-fid frame-newfid frame-tag)
-                                    (add-mapping frame-newfid fs-name (last wname-paths))))
+                                    (add-mapping frame-newfid fs-name (peek wname-paths))))
                  :reply {:nwqids qids}})))))
 
 ;; Topen:
