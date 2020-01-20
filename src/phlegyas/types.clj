@@ -18,13 +18,13 @@
 (def max-message-size 0x7fffffff)
 (def stat-keep-string         "")
 
-(def access-mode {:oread  0x00
-                  :owrite 0x01
-                  :ordrw  0x02
-                  :oexec  0x03
-                  :otrunc 0x10
-                  :rclose 0x40
-                  :oexcl  0x1000})
+(def access-mode {:oread   0x00
+                  :owrite  0x01
+                  :ordrw   0x02
+                  :oexec   0x03
+                  :otrunc  0x10
+                  :orclose 0x40
+                  :oexcl   0x1000})
 
 (def role-access {:oread  #{:read       }
                   :owrite #{:write      }
