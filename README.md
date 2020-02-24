@@ -14,13 +14,11 @@ Run `lein test` to verify things work as they should. Currently, 100% of the pro
 
 Note the field names in `types.clj`. The `assemble-packet` function will take a map of these and create a byte-array for you. `disassemble-packet` will do the reverse.
 
-### Development Notes
+### Notes
 
-I have included a built-in TCP server in order to aid this development, accessible from the phlegyas.core namespace.
+An example server is available (see the `phlegyas.server` namespace).
 
-Jack in with Spacemacs/CIDER with `,'` and then, at the REPL, `(r)`
-
-This will start a server at localhost on port 10001.
+Client routines are also available (see the `phlegyas.client` namespace).
 
 For testing, build [plan9port](https://9fans.github.io/plan9port/) (will require compilers & development headers):
 
@@ -32,8 +30,8 @@ Then, run the built 9P FUSE client, e.g.:
 
 `9pfuse -D 'tcp!localhost!10001' mountpoint`
 
-This should aid in the development cycle.
+The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content (see the `phlegyas.vfs` namespace).
 
-The example VFS layer will create a single filesystem for attaching, and some example files within, with both dynamic and static content.
+### TODO
 
-When hitting inevitable issues, a simple call to `(r)` again will reset the service back to a clean state, ready to continue on your adventures.
+Authentication is not yet supported. The example VFS is rudimentary and leaves room for improvement.
