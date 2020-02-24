@@ -3,8 +3,6 @@
             [buddy.core.codecs :refer :all])
   (:import java.nio.ByteBuffer))
 
-(set! *warn-on-reflection* true)
-
 ;; i'm not happy with this yet. it doesn't handle multiple forms correctly,
 ;; nor docstrings. help appreciated.
 (defmacro defn-frame-binding
@@ -124,5 +122,4 @@
 
 (defn sha-str
   [s]
-  (-> (hash/sha256 s)
-      (bytes->hex)))
+  (bytes->hex (hash/sha256 s)))

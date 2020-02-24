@@ -12,16 +12,14 @@
 
 ;; an example VFS layer. currently a mess, needs cleanup.
 
-(set! *warn-on-reflection* true)
-
 (defrecord stat
-    [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
+           [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
 
 (defrecord qid
-    [qid-type qid-vers qid-path])
+           [qid-type qid-vers qid-path])
 
 (defrecord filesystem
-    [files path-pool id root-path])
+           [files path-pool id root-path])
 
 (defn stat->qid
   [stat]
@@ -87,12 +85,12 @@
 (defn sizeof
   "Get the length of a file."
   [^java.io.File fh]
-  (-> fh .length))
+  (.length fh))
 
 (defn filename
   "Get the name of the file."
   [^java.io.File fh]
-  (-> fh .getName))
+  (.getName fh))
 
 (defn qid-file?
   "Is the provided qid a representation of a file?"
@@ -233,7 +231,7 @@
 
 (defn-frame-binding example-function-for-files
   [& {:keys [connection frame stat]}]
-  (if (> frame-offset 0)
+  (if (pos? frame-offset)
     (byte-array 0)
     (.getBytes "hello, world!\n" "UTF-8")))
 
@@ -265,7 +263,7 @@
     (if (= frame-ftype :Twrite)
       (do
         (swap! state (fn [x] (update-stat x frame-fid {:metadata {:contents (conj contents frame-data)}
-                                                      :length (+ (:length stat) count-bytes)})))
+                                                       :length (+ (:length stat) count-bytes)})))
         (uint->int count-bytes))
       (-> contents flatten pack))))
 
@@ -275,12 +273,12 @@
         current-time-bytes (.getBytes (str current-time "\n") "UTF-8")
         file-time (:time (:metadata stat))]
     (swap! state (fn [x] (update-stat x frame-fid {:metadata {:time current-time}
-                                                  :atime current-time
-                                                  :mtime current-time
-                                                  :qid-vers (int (hash current-time))
-                                                  :length (ulong->long (+ 1 frame-offset (count current-time-bytes)))})))
+                                                   :atime current-time
+                                                   :mtime current-time
+                                                   :qid-vers (int (hash current-time))
+                                                   :length (ulong->long (+ 1 frame-offset (count current-time-bytes)))})))
 
-    (if (or (= frame-offset 0) (not= current-time file-time))
+    (if (or (zero? frame-offset) (not= current-time file-time))
       current-time-bytes
       (byte-array 0))))
 
@@ -322,7 +320,7 @@
 (defn path->qid
   "Given a filesystem and a path, return the qid for the path."
   [fs path]
-  (-> (path->stat fs path) stat->qid))
+  (stat->qid (path->stat fs path)))
 
 (defn wname->path
   "Given a filesystem, a path, and a wname (file name), look through the children

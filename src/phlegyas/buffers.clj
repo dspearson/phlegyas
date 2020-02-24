@@ -7,58 +7,56 @@
                      ulong->long
                      ubyte->byte]]))
 
-(set! *warn-on-reflection* true)
-
 (defn get-short
   "Read short from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer .getShort))
+  (.getShort buffer))
 
 (defn get-int
   "Read integer from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer .getInt))
+  (.getInt buffer))
 
 (defn get-long
   "Read long from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer .getLong))
+  (.getLong buffer))
 
 (defn get-string
   "Read string[s] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (let [string-size (-> buffer .getShort)]
+  (let [string-size (.getShort buffer)]
     (String. (byte-array (map byte (for [i (range string-size)] (^Byte .get buffer)))) "UTF-8")))
 
 (defn get-byte
   "Read byte from the byte buffer."
   [^java.nio.ByteBuffer buffer]
-  (-> buffer .get))
+  (.get buffer))
 
 (defn get-wnames
   "Read nwname[2] of wname[s] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (let [nwname (-> buffer .getShort short->ushort)]
-    (if (= nwname 0)
+    (if (zero? nwname)
       []
       (loop [wnames []
              count nwname]
-        (if (= count 0)
+        (if (zero? count)
           wnames
-          (recur (conj wnames (get-string buffer)) (- count 1)))))))
+          (recur (conj wnames (get-string buffer)) (dec count)))))))
 
 (defn get-nwqids
   "Read nqwid[2] of qid[13] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (let [nwqid (-> buffer .getShort short->ushort)]
-    (if (= nwqid 0)
+    (if (zero? nwqid)
       []
       (loop [qids []
              count nwqid]
-        (if (= count 0)
+        (if (zero? count)
           qids
           (recur (conj qids {:qid-type (get-byte buffer) :qid-vers (get-int buffer) :qid-path (get-long buffer)})
-                 (- count 1)))))))
+                 (dec count)))))))
 
 (defn get-data
   "Read data[count] from the byte buffer."

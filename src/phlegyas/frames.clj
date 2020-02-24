@@ -7,8 +7,6 @@
             [primitive-math :as math
              :refer [uint->int]]))
 
-(set! *warn-on-reflection* true)
-
 (defmacro frame-length
   "Check reported frame length."
   [buffer]

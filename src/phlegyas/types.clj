@@ -8,8 +8,6 @@
                      ushort->short
                      ulong->long]]))
 
-(set! *warn-on-reflection* true)
-
 ; protocol defaults
 (def protocol-version   "9P2000")
 (def notag                0xffff)

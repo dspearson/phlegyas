@@ -10,15 +10,13 @@
 
 ;; an example implementation of a client.
 
-(set! *warn-on-reflection* true)
-
 (defn next-val
   "Find the smallest integer not currently in the atomic set, add it to the
   atomic set, and return the added value."
   [a]
   (let [next-available (fn [p]
                          (loop [i 0]
-                           (if (not (contains? p i))
+                           (if-not (contains? p i)
                              i
                              (recur (inc i)))))
         [old new] (swap-vals! a (fn [x] (conj x (next-available x))))]
@@ -28,12 +26,12 @@
   "Adds a new fid that results from a successful walk to the atomic map."
   [mapping fid newfid paths]
   (swap! mapping (fn [y] (let [parent (get y fid)
-                              parent-name (:name parent)
-                              parent-uname (:uname parent)
-                              path-prefix (if (= parent "/") "" parent)]
-                          (assoc y newfid
-                                 {:name (str parent "/" (cs/join "/" paths))
-                                  :uname parent-uname})))))
+                               parent-name (:name parent)
+                               parent-uname (:uname parent)
+                               path-prefix (if (= parent "/") "" parent)]
+                           (assoc y newfid
+                                  {:name (str parent "/" (cs/join "/" paths))
+                                   :uname parent-uname})))))
 
 (defn tag-and-assemble
   "Add a tag to the request, and assemble it into a byte-array."
@@ -119,7 +117,7 @@
         requested-fid (next-val fid-pool)
         response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames paths})]
     (cond
-      (not (= (:frame response) :Rwalk))
+      (not= (:frame response) :Rwalk)
       (throw (Exception. "unable to walk."))
 
       (and (= (:frame response) :Rwalk) (= (count (:nwqids response)) (count paths)))
@@ -141,7 +139,6 @@
         (assoc-val (:open-fids connection) fid {:iomode iomode :iounit (:iounit response)})
         (:iounit response))
       (throw (Exception. "unable to open fid.")))))
-
 
 (defn read-fid-partial
   "Takes a connection, fid, offset, and iounit. Returns data."
@@ -192,7 +189,7 @@
         layout (subvec (:Rstat frame-layouts) 2)
         ^java.nio.ByteBuffer buf (wrap-buffer data)]
     (loop [stats {}]
-      (if (= (.remaining buf) 0)
+      (if (zero? (.remaining buf))
         stats
         (let [y (into {} (for [elem layout] {elem ((elem get-operation) buf)}))]
           (recur (assoc stats (:qid-path y) y)))))))
@@ -227,10 +224,10 @@
         in-flight-requests (atom {})
         frame-assembler-thread (frame-assembler in incoming-frame-stream)]
     (s/consume (fn [x] (let [tag (:tag x)
-                            response ((keywordize tag) @in-flight-requests)]
-                        (dissoc-val in-flight-requests (keywordize tag))
-                        (disj-val tagpool tag)
-                        (d/success! response x))) incoming-frame-stream)
+                             response ((keywordize tag) @in-flight-requests)]
+                         (dissoc-val in-flight-requests (keywordize tag))
+                         (disj-val tagpool tag)
+                         (d/success! response x))) incoming-frame-stream)
     (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % in-flight-requests tagpool)) in)
     {:tag-pool tagpool
      :fid-pool fidpool

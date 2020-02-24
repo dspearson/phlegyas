@@ -11,8 +11,6 @@
 
 ;; an example state machine
 
-(set! *warn-on-reflection* true)
-
 ;; helper macros
 
 (defmacro iounit!
@@ -105,10 +103,10 @@
         root-fs-id (:id root-fs)
         root-path (:root-path root-fs)]
     (state! {:update (fn [x] (-> x
-                                (add-fs root-fs)
-                                (add-fid frame-fid frame-tag)
-                                (add-mapping frame-fid root-fs-id root-path)
-                                (add-role root-fs-id frame-uname frame-uname)))
+                                 (add-fs root-fs)
+                                 (add-fid frame-fid frame-tag)
+                                 (add-mapping frame-fid root-fs-id root-path)
+                                 (add-role root-fs-id frame-uname frame-uname)))
              :reply (path->qid root-fs root-path)})))
 
 ;; Tflush:
@@ -142,18 +140,18 @@
 ;; path, replying with the qids.
 (defn-frame-binding Twalk
   [frame connection]
-  (if (= (count frame-wnames) 0)
+  (if (zero? (count frame-wnames))
     (state! {:update (fn [x] (-> x
-                                (add-fid frame-newfid frame-tag)
-                                (add-mapping frame-newfid fs-name path)))
+                                 (add-fid frame-newfid frame-tag)
+                                 (add-mapping frame-newfid fs-name path)))
              :reply {:nwqids []}})
     (let [wname-paths (walk-path fs path frame-wnames)
           qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
       (if (< (count wname-paths) (count frame-wnames))
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x
-                                    (add-fid frame-newfid frame-tag)
-                                    (add-mapping frame-newfid fs-name (peek wname-paths))))
+                                     (add-fid frame-newfid frame-tag)
+                                     (add-mapping frame-newfid fs-name (peek wname-paths))))
                  :reply {:nwqids qids}})))))
 
 ;; Topen:
@@ -167,7 +165,7 @@
   [frame connection]
   (let [role (fid->role frame-fid current-state)
         stat (path->stat fs path)]
-    (if (not (permission-check stat role :oread))
+    (if-not (permission-check stat role :oread)
       (error! "no read permission")
       (state! {:update (fn [x] (update-mapping x frame-fid {:offset 0}))
                :reply {:iounit (iounit!)
@@ -234,13 +232,13 @@
         typ (stat-type stat)]
     (case typ
 
-      :dir (if (and (> frame-offset 0) (not (= frame-offset (:offset mapping))))
+      :dir (if (and (pos? frame-offset) (not= frame-offset (:offset mapping)))
              ; reads of directories must begin at offset 0, or the previous offset +
              ; the last returned byte count, for followup reads of incomplete data.
              ; i.e., either offset = 0, or offset = previous offset + previous count.
              (error! "cannot seek in directories!")
 
-             (let [dirpaths (if (= frame-offset 0)        ; read directory from beginning...
+             (let [dirpaths (if (zero? frame-offset)      ; read directory from beginning...
                               (:children stat)            ; so return all children.
                               (:paths-remaining mapping)) ; or else, we are continuing a previous read call.
 
@@ -252,7 +250,7 @@
                    delivered-byte-count (count dir-data)]
 
                (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count dir-data))
-                                                                    :paths-remaining paths-remaining}))
+                                                                     :paths-remaining paths-remaining}))
                         :reply {:data dir-data}})))
 
       :file (if (and (not= 0 (:length stat)) (>= frame-offset (:length stat))) ; if offset >= length, it means that we are
@@ -286,8 +284,8 @@
 (defn-frame-binding Tclunk
   [frame connection]
   (state! {:update (fn [x] (-> x
-                              (i/dissoc-in [:fids frame-fid])
-                              (i/dissoc-in [:mapping frame-fid])))}))
+                               (i/dissoc-in [:fids frame-fid])
+                               (i/dissoc-in [:mapping frame-fid])))}))
 
 ;; Tremove:
 ;; fetch the stat, the parent directory stat, then a new list of children
@@ -300,8 +298,8 @@
         dir-stat (get (:files fs) (:parent stat))
         new-children (dissoc (:children dir-stat) (keywordize (sha-str (:name stat))))]
     (state! {:update (fn [x] (-> x
-                                (update-in [:fs-map fs-name :files (:parent stat)] (fn [y] (assoc y :children new-children)))
-                                (i/dissoc-in [:fs-map fs-name :files (keywordize (:qid-path stat))])))})))
+                                 (update-in [:fs-map fs-name :files (:parent stat)] (fn [y] (assoc y :children new-children)))
+                                 (i/dissoc-in [:fs-map fs-name :files (keywordize (:qid-path stat))])))})))
 
 ;; Tstat:
 ;; fetch the stat associated with the provided fid, and simply reply with it.

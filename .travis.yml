@@ -1,5 +1,15 @@
 language: clojure
 script: lein do clean, test
-dist: xenial
+dist: bionic
 jdk:
   - openjdk11
+cache:
+  directories:
+    - $HOME/.lein
+    - $HOME/.m2
+script:
+  - lein with-profile +test cljfmt check
+  - lein with-profile +test kibit
+  - lein with-profile +test eastwood || true
+  - lein with-profile +test ancient || true
+  - lein test

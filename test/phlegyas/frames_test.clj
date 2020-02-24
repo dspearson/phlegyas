@@ -5,8 +5,6 @@
             [phlegyas.types :refer :all]
             [phlegyas.frames :refer :all]))
 
-(set! *warn-on-reflection* true)
-
 (defn read-vector
   [^java.io.File v]
   (with-open [^java.io.BufferedInputStream in (io/input-stream v)]
