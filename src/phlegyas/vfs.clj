@@ -94,6 +94,19 @@
   [^java.io.File fh]
   (-> fh .getName))
 
+(defn qid-file?
+  "Is the provided qid a representation of a file?"
+  [qid]
+  (or (= qid (:file qt-mode))
+      (pos? (bit-and qid (:file qt-mode)))
+      (pos? (bit-and qid (:append qt-mode)))
+      (pos? (bit-and qid (:tmp qt-mode)))))
+
+(defn qid-directory?
+  "Is the provided qid a representation of a directory?"
+  [qid]
+  (pos? (bit-and qid (:dir qt-mode))))
+
 (defn stat-size
   "Calculate the size of a stat reply."
   [fname uid gid muid]
