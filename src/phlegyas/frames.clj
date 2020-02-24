@@ -28,9 +28,9 @@
   [packet]
   (let [^java.nio.ByteBuffer frame (wrap-buffer packet)
         len (uint->int (frame-length frame))
-        frame-typ (frame-type frame)
-        layout (get frame-layouts frame-typ)]
-    (into {:frame frame-typ} (for [typ layout] {typ ((get get-operation typ) frame)}))))
+        ftype (frame-type frame)
+        layout (get frame-layouts ftype)]
+    (into {:frame ftype} (for [field layout] {field ((get get-operation field) frame)}))))
 
 (defn assemble
   "Takes in a frame and frame type, calculates the final size of the frame
