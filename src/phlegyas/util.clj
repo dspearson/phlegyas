@@ -3,16 +3,15 @@
             [buddy.core.codecs :refer :all])
   (:import java.nio.ByteBuffer))
 
-;; i'm not happy with this yet. it doesn't handle multiple forms correctly,
-;; nor docstrings. help appreciated.
 (defmacro defn-frame-binding
-  [name args body]
-  `(defn ~name ~args (do (with-frame-bindings ~body))))
+  "A wrapper around defn which wraps the body forms in `with-frame-bindings`,
+  which is an anamorphic macro that creates a lexical environment and defines
+  a number of useful variables for us."
+  ([name args body]
+   `(defn ~name ~args (do (with-frame-bindings ~body))))
+  ([name docstr args body]
+   `(defn ~name ~docstr ~args (do (with-frame-bindings ~body)))))
 
-;; there's probably a much more clever way of doing this, but I gave up after
-;; a few minutes after trying to look up how to dynamically create let bindings.
-;; (for [elem (keys buffer-operator)]
-;;   (symbol (str "frame-" (subs (str elem) 1))))
 (defmacro with-frame-bindings
   ([body]
    `(with-frame-bindings ~'frame ~body))

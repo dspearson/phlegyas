@@ -61,7 +61,8 @@
 ;; 9P2000 spec. if you encounter any obvious deficiencies, please let me know. i will improve it
 ;; as i go.
 ;;
-;; for details of the protocol, see intro(9P) in the Plan 9 documentation.
+;; for details of the protocol, see intro(9P) in the Plan 9 documentation. docstrings are taken
+;; from here.
 
 ;; Tversion:
 ;; 1. first we check that the provided version string starts with 9P2000. if it does not, we do not
@@ -72,6 +73,17 @@
 ;;    we can handle, so we reply with 9P2000 and our maximum message size, which the client must
 ;;    use from now on.
 (defn-frame-binding Tversion
+  "version - negotiate protocol version
+
+  size[4] Tversion tag[2] msize[4] version[s]
+  size[4] Rversion tag[2] msize[4] version[s]
+
+  The version request negotiates the protocol version and message size
+  to be used on the connection and initialises the connection for I/O.
+  Tversion must be the first message sent on the 9P connection, and
+  the client cannot issue any further requests until it has received
+  the Rversion reply. The tag should be NOTAG (value (ushort)~0) for a
+  version message."
   [frame connection]
   (cond
     (not (string/starts-with? frame-version protocol-version)) (state! {:reply {:version "unknown"}})
@@ -84,6 +96,10 @@
 ;; Tauth:
 ;; not currently implemented, i.e. no authentication is required.
 (defn-frame-binding Tauth
+  "auth – messages to establish a connection
+
+  size[4] Tauth tag[2] afid[4] uname[s] aname[s]
+  size[4] Rauth tag[2] aqid[13]"
   [frame connection]
   (error! "no authentication required"))
 
@@ -98,6 +114,15 @@
 ;; lookup key to the uname value specified in the attach call.
 ;; we then reply with the qid of the root of the filesystem.
 (defn-frame-binding Tattach
+  "attach – messages to establish a connection
+
+  size[4] Tattach tag[2] fid[4] afid[4] uname[s] aname[s]
+  size[4] Rattach tag[2] qid[13]
+
+  The attach message serves as a fresh introduction from a user on the client
+  machine to the server. The message identifies the user (uname) and may select
+  the file tree to access (aname). The afid argument specifies a fid previously
+  established by an auth message."
   [frame connection]
   (let [root-fs ((:root-filesystem current-state))
         root-fs-id (:id root-fs)
@@ -112,6 +137,10 @@
 ;; Tflush:
 ;; not currently implemented.
 (defn-frame-binding Tflush
+  "flush - abort a message
+
+  size[4] Tflush tag[2] oldtag[2]
+  size[4] Rflush tag[2]"
   [frame connection]
   (state! {}))
 
@@ -139,6 +168,16 @@
 ;; otherwise, we add the newfid and create a mapping to the final walked
 ;; path, replying with the qids.
 (defn-frame-binding Twalk
+  "walk - descend a directory hierarchy
+
+  size[4] Twalk tag[2] fid[4] newfid[4] nwname[2] nwname*(wname[s])
+  size[4] Rwalk tag[2] nwqid[2] nwqid*(qid[13])
+
+  The walk request carries as arguments an existing fid and a proposed newfid
+  (which must not be in use unless it is the same as fid) that the client
+  wishes to associate with the result of traversing the directory hierarchy by
+  'walking' the hierarchy using the successive path name elements wname. The
+  fid must represent a directory unless zero path name elements are specified."
   [frame connection]
   (if (zero? (count frame-wnames))
     (state! {:update (fn [x] (-> x
@@ -162,6 +201,10 @@
 ;; offset so that subsequent reads from the client are legal.
 ;; we then reply with the iounit, and the qid of the fid we just opened.
 (defn-frame-binding Topen
+  "open - prepare a fid for I/O on an existing file
+
+  size[4] Topen tag[2] fid[4] mode[1]
+  size[4] Ropen tag[2] qid[13] iounit[4]"
   [frame connection]
   (let [role (fid->role frame-fid current-state)
         stat (path->stat fs path)]
@@ -187,6 +230,10 @@
 ;; parent stat with the new child path.
 ;; reply with the qid of the new file, and the iounit (calculated using `iounit!`)
 (defn-frame-binding Tcreate
+  "create - prepare a fid for I/O on a new file
+
+  size[4] Tcreate tag[2] fid[4] name[s] perm[4] mode[1]
+  size[4] Rcreate tag[2] qid[13] iounit[4]"
   [frame connection]
   (let [new-stat (synthetic-file frame-name :read-fn #'example-function-for-files)
         parent-stat (fid->stat current-state frame-fid)
@@ -227,6 +274,24 @@
 ;; for :append, we do not need to check the length. this is handled within the
 ;; read function of the file instead.
 (defn-frame-binding Tread
+  "read – transfer data from a file
+
+  size[4] Tread tag[2] fid[4] offset[8] count[4]
+  size[4] Rread tag[2] count[4] data[count]
+
+	The read request asks for count bytes of data from the file identified by fid,
+  which must be opened for reading, starting offset bytes after the beginning of
+  the file. The bytes are returned with the read reply message.
+
+  The count field in the reply indicates the number of bytes returned. This may
+  be less than the requested amount. If the offset field is greater than or
+  equal to the number of bytes in the file, a count of zero will be returned.
+  For directories, read returns an integral number of directory entries exactly
+  as in stat (see stat(9P)), one for each member of the directory. The read
+  request message must have offset equal to zero or the value of offset in the
+  previous read on the directory, plus the number of bytes returned in the
+  previous read. In other words, seeking other than to the beginning is
+  illegal in a directory."
   [frame connection]
   (let [stat (path->stat fs (:path mapping))
         typ (stat-type stat)]
@@ -269,6 +334,24 @@
 ;; written to the file.
 ;; if the :write-fn is not defined, then return error.
 (defn-frame-binding Twrite
+  "write – transfer data to a file
+
+  size[4] Twrite tag[2] fid[4] offset[8] count[4] data[count]
+  size[4] Rwrite tag[2] count[4]
+
+  The write request asks that count bytes of data be recorded in the file
+  identified by fid, which must be opened for writing, starting offset bytes
+  after the beginning of the file. If the file is append-only, the data will be
+  placed at the end of the file regardless of offset. Directories may not be
+  written.
+
+  The write reply records the number of bytes actually written. It is usually
+  an error if this is not the same as requested.
+
+  Because 9P implementations may limit the size of individual messages, more
+  than one message may be produced by a single read or write call. The iounit
+  field returned by open(9P), if non-zero, reports the maximum size that is
+  guaranteed to be transferred atomically."
   [frame connection]
   (let [stat (fid->stat current-state frame-fid)
         write-fn (:write-fn stat)]
@@ -282,6 +365,20 @@
 ;; of fid to filesystem and path. reply is not required, since the frame we
 ;; received already had all the data required for the reply.
 (defn-frame-binding Tclunk
+  "clunk – forget about a fid
+
+  size[4] Tclunk tag[2] fid[4]
+  size[4] Rclunk tag[2]
+
+
+  The clunk request informs the file server that the current file represented
+  by fid is no longer needed by the client. The actual file is not removed on
+  the server unless the fid had been opened with ORCLOSE.
+
+  Once a fid has been clunked, the same fid can be reused in a new walk or
+  attach request.
+
+  Even if the clunk returns an error, the fid is no longer valid."
   [frame connection]
   (state! {:update (fn [x] (-> x
                                (i/dissoc-in [:fids frame-fid])
@@ -293,6 +390,25 @@
 ;; update dissociates the stat from the filesystem, and applies the update to
 ;; the parent. no new reply data required.
 (defn-frame-binding Tremove
+  "remove – remove a file from a server
+
+  size[4] Tremove tag[2] fid[4]
+  size[4] Rremove tag[2]
+
+
+  The remove request asks the file server both to remove the file represented
+  by fid and to clunk the fid, even if the remove fails. This request will
+  fail if the client does not have write permission in the parent directory.
+
+  It is correct to consider remove to be a clunk with the side effect of
+  removing the file if permissions allow.
+
+  If a file has been opened as multiple fids, possibly on different
+  connections, and one fid is used to remove the file, whether the other fids
+  continue to provide access to the file is implementation-defined. The Plan
+  9 file servers remove the file immediately: attempts to use the other fids
+  will yield a “phase error.” U9fs follows the semantics of the underlying
+  Unix file system, so other fids typically remain usable."
   [frame connection]
   (let [stat (fid->stat current-state frame-fid)
         dir-stat (get (:files fs) (:parent stat))
@@ -304,6 +420,69 @@
 ;; Tstat:
 ;; fetch the stat associated with the provided fid, and simply reply with it.
 (defn-frame-binding Tstat
+  "stat – get file attributes
+
+  size[4] Tstat tag[2] fid[4]
+  size[4] Rstat tag[2] stat[n]
+
+  The stat transaction inquires about the file identified by fid. The reply
+  will contain a machine-independent directory entry, stat, laid out as
+  follows:
+
+  size[2]        total byte count of the following data
+  type[2]        for kernel use
+  dev[4]         for kernel use
+  qid.type[1]    the type of the file (directory, etc.), represented as a
+                 bit vector corresponding to the high 8 bits of the file’s
+                 mode word.
+  qid.vers[4]    version number for given path
+  qid.path[8]    the file server’s unique identification for the file
+  mode[4]        permissions and flags
+  atime[4]       last access time
+  mtime[4]       last modification time
+  length[8]      length of file in bytes
+  name[ s ]      file name; must be / if the file is the root directory of
+                 the server
+  uid[ s ]       owner name
+  gid[ s ]       group name
+  muid[ s ]      name of the user who last modified the file 
+
+  Integers in this encoding are in little-endian order (least significant byte
+  first).
+
+  The mode contains permission bits as described in intro(9P) and the following:
+
+    0x80000000 (DMDIR, this file is a directory)
+    0x40000000 (DMAPPEND, append only)
+    0x20000000 (DMEXCL, exclusive use)
+    0x04000000 (DMTMP, temporary); these are echoed in Qid.type.
+
+  Writes to append-only files always place their data at the end of the file;
+  the offset in the write message is ignored, as is the OTRUNC bit in an open.
+  Exclusive use files may be open for I/O by only one fid at a time across all
+  clients of the server. If a second open is attempted, it draws an error.
+  Servers may implement a timeout on the lock on an exclusive use file: if the
+  fid holding the file open has been unused for an extended period (of order
+  at least minutes), it is reasonable to break the lock and deny the initial
+  fid further I/O. Temporary files are not included in nightly archives (see
+  Plan 9’s fossil(4)).
+
+  The two time fields are measured in seconds since the epoch (Jan 1 00:00
+  1970 GMT). The mtime field reflects the time of the last change of content
+  (except when later changed by wstat). For a plain file, mtime is the time
+  of the most recent create, open with truncation, or write; for a directory
+  it is the time of the most recent remove, create, or wstat of a file in the
+  directory. Similarly, the atime field records the last read of the contents;
+  also it is set whenever mtime is set. In addition, for a directory, it is set
+  by an attach, walk, or create, all whether successful or not.
+
+  The muid field names the user whose actions most recently changed the mtime
+  of the file.
+
+  The length records the number of bytes in the file. Directories and most
+  files representing devices have a conventional length of 0.
+
+  The stat request requires no special permissions."
   [frame connection]
   (let [stat (fid->stat current-state frame-fid)]
     (state! {:reply stat})))
@@ -311,6 +490,10 @@
 ;; Twstat:
 ;; not currently implemented.
 (defn-frame-binding Twstat
+  "wstat - change file attributes
+
+  size[4] Twstat tag[2] fid[4] stat[n]
+  size[4] Rwstat tag[2]"
   [frame connection]
   (state! {}))
 
