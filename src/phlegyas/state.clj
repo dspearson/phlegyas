@@ -1,12 +1,12 @@
 (ns phlegyas.state
   (:require [phlegyas.types :refer [protocol-version max-message-size frame-byte reverse-frame-byte]]
-            [phlegyas.vfs :refer [add-fs add-fid add-mapping add-role path->qid fid->role fid->mapping
+            [phlegyas.vfs :refer [add-fs add-fid add-mapping add-role path->qid fid->role
                                   update-mapping walk-path stat->qid path->stat fid->stat permission-check
-                                  example-function-for-files example-read-write synthetic-file walk-path
+                                  example-function-for-files synthetic-file walk-path
                                   stat-type directory-reader next-available-path fetch-data]]
             [phlegyas.util :refer [defn-frame-binding keywordize sha-str conj-val disj-val]]
             [clojure.string :as string]
-            [clojure.core.incubator :as i]
+            [clojure.core.incubator :refer [dissoc-in]]
             [manifold.stream :as s]
             [manifold.deferred :as d]))
 
@@ -388,8 +388,8 @@
   Even if the clunk returns an error, the fid is no longer valid."
   [frame connection]
   (state! {:update (fn [x] (-> x
-                               (i/dissoc-in [:fids frame-fid])
-                               (i/dissoc-in [:mapping frame-fid])))}))
+                               (dissoc-in [:fids frame-fid])
+                               (dissoc-in [:mapping frame-fid])))}))
 
 ;; Tremove:
 ;; fetch the stat, the parent directory stat, then a new list of children
@@ -422,7 +422,7 @@
         new-children (dissoc (:children dir-stat) (keywordize (sha-str (:name stat))))]
     (state! {:update (fn [x] (-> x
                                  (update-in [:fs-map fs-name :files (:parent stat)] (fn [y] (assoc y :children new-children)))
-                                 (i/dissoc-in [:fs-map fs-name :files (keywordize (:qid-path stat))])))})))
+                                 (dissoc-in [:fs-map fs-name :files (keywordize (:qid-path stat))])))})))
 
 ;; Tstat:
 ;; fetch the stat associated with the provided fid, and simply reply with it.
