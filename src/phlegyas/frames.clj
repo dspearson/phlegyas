@@ -7,7 +7,7 @@
             [phlegyas.util :refer [wrap-buffer
                                    pack
                                    keywordize]]
-            [clojure.core.async :as async]
+            [clojure.core.async :refer [thread]]
             [manifold.stream :as s]))
 
 (defmacro frame-length
@@ -67,7 +67,7 @@
 (defn frame-assembler
   "Spawn a thread to recursively read from an incoming stream."
   [in out]
-  (async/thread
+  (thread
     (loop [packet (vec @(s/take! in))]
       (let [partial (dispatch-frame packet out)]
         (if (s/closed? in)
