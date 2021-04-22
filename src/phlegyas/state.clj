@@ -1,15 +1,23 @@
 (ns phlegyas.state
-  (:require [phlegyas.types :refer :all]
-            [phlegyas.vfs :refer :all]
-            [phlegyas.frames :refer :all]
-            [phlegyas.util :refer :all]
+  (:require [phlegyas.types :refer [protocol-version max-message-size frame-byte reverse-frame-byte]]
+            [phlegyas.vfs :refer [add-fs add-fid add-mapping add-role path->qid fid->role fid->mapping
+                                  update-mapping walk-path stat->qid path->stat fid->stat permission-check
+                                  example-function-for-files example-read-write synthetic-file walk-path
+                                  stat-type directory-reader next-available-path fetch-data]]
+            [phlegyas.util :refer [defn-frame-binding keywordize sha-str conj-val disj-val]]
             [clojure.string :as string]
-            [clojure.core.async :as async]
             [clojure.core.incubator :as i]
             [manifold.stream :as s]
             [manifold.deferred :as d]))
 
 ;; an example state machine
+
+;; linting aid.
+(declare state current-state frame-ftype frame-tag frame-qid-type frame-qid-vers frame-qid-path frame-nwqids
+         frame-wnames frame-iounit frame-iomode frame-count frame-ssize frame-size frame-type frame-mode
+         frame-atime frame-mtime frame-length frame-name frame-uname frame-muid frame-data frame-offset
+         frame-fid frame-ename frame-version frame-afid frame-aname frame-oldtag frame-newfid frame-msize
+         mapping fs-name fs fsid path)
 
 ;; helper macros
 
@@ -311,8 +319,7 @@
                    ; this can happen if the read call on a directory is larger than the size allowed in a message,
                    ; and read calls can only return integral stat entries, so we need to store the list of paths that
                    ; were not visited in this iteration, so that followup reads can continue where we left off.
-                   [dir-data paths-remaining] (directory-reader fs dirpaths frame-count)
-                   delivered-byte-count (count dir-data)]
+                   [dir-data paths-remaining] (directory-reader fs dirpaths frame-count)]
 
                (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count dir-data))
                                                                      :paths-remaining paths-remaining}))

@@ -1,12 +1,6 @@
 (ns phlegyas.types
-  (:require [clojure.set :refer :all]
-            [phlegyas.util :refer :all]
-            [phlegyas.buffers :refer :all]
-            [primitive-math :as math
-             :refer [ubyte->byte
-                     uint->int
-                     ushort->short
-                     ulong->long]]))
+  (:require [phlegyas.util :refer [reverse-map]]
+            [phlegyas.buffers :as buffers]))
 
 ; protocol defaults
 (def protocol-version   "9P2000")
@@ -155,75 +149,75 @@
                 :length    8
                 :count     4})
 
-(def get-operation {:version  #'get-string
-                    :name     #'get-string
-                    :uname    #'get-string
-                    :aname    #'get-string
-                    :muid     #'get-string
-                    :uid      #'get-string
-                    :gid      #'get-string
-                    :ename    #'get-string
-                    :nwqids   #'get-nwqids
-                    :wnames   #'get-wnames
-                    :data     #'get-data
-                    :tag      #'get-short
-                    :oldtag   #'get-short
-                    :fid      #'get-int
-                    :afid     #'get-int
-                    :newfid   #'get-int
-                    :msize    #'get-int
-                    :perm     #'get-int
-                    :iounit   #'get-int
-                    :iomode   #'get-byte
-                    :offset   #'get-long
-                    :count    #'get-int
-                    :type     #'get-short
-                    :dev      #'get-int
-                    :qid-type #'get-byte
-                    :qid-vers #'get-int
-                    :qid-path #'get-long
-                    :mode     #'get-int
-                    :atime    #'get-int
-                    :mtime    #'get-int
-                    :length   #'get-long
-                    :size     #'get-short
-                    :ssize    #'get-short})
+(def get-operation {:version  #'buffers/get-string
+                    :name     #'buffers/get-string
+                    :uname    #'buffers/get-string
+                    :aname    #'buffers/get-string
+                    :muid     #'buffers/get-string
+                    :uid      #'buffers/get-string
+                    :gid      #'buffers/get-string
+                    :ename    #'buffers/get-string
+                    :nwqids   #'buffers/get-nwqids
+                    :wnames   #'buffers/get-wnames
+                    :data     #'buffers/get-data
+                    :tag      #'buffers/get-short
+                    :oldtag   #'buffers/get-short
+                    :fid      #'buffers/get-int
+                    :afid     #'buffers/get-int
+                    :newfid   #'buffers/get-int
+                    :msize    #'buffers/get-int
+                    :perm     #'buffers/get-int
+                    :iounit   #'buffers/get-int
+                    :iomode   #'buffers/get-byte
+                    :offset   #'buffers/get-long
+                    :count    #'buffers/get-int
+                    :type     #'buffers/get-short
+                    :dev      #'buffers/get-int
+                    :qid-type #'buffers/get-byte
+                    :qid-vers #'buffers/get-int
+                    :qid-path #'buffers/get-long
+                    :mode     #'buffers/get-int
+                    :atime    #'buffers/get-int
+                    :mtime    #'buffers/get-int
+                    :length   #'buffers/get-long
+                    :size     #'buffers/get-short
+                    :ssize    #'buffers/get-short})
 
-(def put-operation {:version  #'put-string
-                    :name     #'put-string
-                    :uname    #'put-string
-                    :aname    #'put-string
-                    :muid     #'put-string
-                    :uid      #'put-string
-                    :gid      #'put-string
-                    :ename    #'put-string
-                    :nwqids   #'put-qid
-                    :wnames   #'put-wname
-                    :data     #'put-bytecoll
-                    :tag      #'put-short
-                    :oldtag   #'put-short
-                    :fid      #'put-int
-                    :afid     #'put-int
-                    :newfid   #'put-int
-                    :msize    #'put-int
-                    :perm     #'put-int
-                    :iounit   #'put-int
-                    :iomode   #'put-byte
-                    :offset   #'put-long
-                    :count    #'put-int
-                    :type     #'put-short
-                    :dev      #'put-int
-                    :qid-type #'put-byte
-                    :qid-vers #'put-int
-                    :qid-path #'put-long
-                    :mode     #'put-int
-                    :atime    #'put-int
-                    :mtime    #'put-int
-                    :length   #'put-long
-                    :fsize    #'put-int
-                    :ftype    #'put-byte
-                    :size     #'put-short
-                    :ssize    #'put-short})
+(def put-operation {:version  #'buffers/put-string
+                    :name     #'buffers/put-string
+                    :uname    #'buffers/put-string
+                    :aname    #'buffers/put-string
+                    :muid     #'buffers/put-string
+                    :uid      #'buffers/put-string
+                    :gid      #'buffers/put-string
+                    :ename    #'buffers/put-string
+                    :nwqids   #'buffers/put-qid
+                    :wnames   #'buffers/put-wname
+                    :data     #'buffers/put-bytecoll
+                    :tag      #'buffers/put-short
+                    :oldtag   #'buffers/put-short
+                    :fid      #'buffers/put-int
+                    :afid     #'buffers/put-int
+                    :newfid   #'buffers/put-int
+                    :msize    #'buffers/put-int
+                    :perm     #'buffers/put-int
+                    :iounit   #'buffers/put-int
+                    :iomode   #'buffers/put-byte
+                    :offset   #'buffers/put-long
+                    :count    #'buffers/put-int
+                    :type     #'buffers/put-short
+                    :dev      #'buffers/put-int
+                    :qid-type #'buffers/put-byte
+                    :qid-vers #'buffers/put-int
+                    :qid-path #'buffers/put-long
+                    :mode     #'buffers/put-int
+                    :atime    #'buffers/put-int
+                    :mtime    #'buffers/put-int
+                    :length   #'buffers/put-long
+                    :fsize    #'buffers/put-int
+                    :ftype    #'buffers/put-byte
+                    :size     #'buffers/put-short
+                    :ssize    #'buffers/put-short})
 
 ;; we iterate over the keys in the buffer-operator map, and resolve functions for reading them.
 (def reverse-frame-byte      (reverse-map frame-byte))

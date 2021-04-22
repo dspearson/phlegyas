@@ -1,5 +1,5 @@
 (ns phlegyas.buffers
-  (:require [phlegyas.util :refer :all]
+  (:require [phlegyas.util :as util]
             [primitive-math :as math
              :refer [uint->int
                      short->ushort
@@ -26,7 +26,7 @@
   "Read string[s] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (let [string-size (.getShort buffer)]
-    (String. (byte-array (map byte (for [i (range string-size)] (^Byte .get buffer)))) "UTF-8")))
+    (String. (byte-array (map byte (for [_ (range string-size)] (^Byte .get buffer)))) "UTF-8")))
 
 (defn get-byte
   "Read byte from the byte buffer."
@@ -70,7 +70,7 @@
   "Wrap short in a byte-array."
   [x]
   (let [data (byte-array 2)
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (.putShort buffer (ushort->short x))
     data))
 
@@ -78,7 +78,7 @@
   "Wrap int in a byte-array."
   [x]
   (let [data (byte-array 4)
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (.putInt buffer (uint->int x))
     data))
 
@@ -86,7 +86,7 @@
   "Wrap long in a byte-array."
   [x]
   (let [data (byte-array 8)
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (.putLong buffer (ulong->long x))
     data))
 
@@ -96,7 +96,7 @@
   (let [string-bytes (.getBytes ^String x "UTF-8")
         string-size (count string-bytes)
         data (byte-array (+ 2 string-size))
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (doto buffer
       (.putShort (ushort->short string-size))
       (.put string-bytes))
@@ -106,7 +106,7 @@
   "Wrap byte in a byte-array."
   [x]
   (let [data (byte-array 1)
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (doto buffer
       (.put (ubyte->byte x)))
     data))
@@ -118,7 +118,7 @@
   (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes ^String x "UTF-8")))) x)))
         num-of-elements (count x)
         data (byte-array buffer-size)
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (.putShort buffer (ushort->short num-of-elements))
     (dotimes [n num-of-elements]
       (let [string-bytes (.getBytes ^String (get x n) "UTF-8")]
@@ -132,7 +132,7 @@
   [x]
   (let [num-of-elements (count x)
         data (byte-array (+ 2 (* 13 num-of-elements)))
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (^Short .putShort buffer num-of-elements)
     (dotimes [n num-of-elements]
       (let [qid (nth x n)]
@@ -147,7 +147,7 @@
   [x]
   (let [size (count x)
         data (byte-array 4)
-        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+        ^java.nio.ByteBuffer buffer (util/wrap-buffer data)]
     (doto buffer
       (.putInt size))
     [data x]))

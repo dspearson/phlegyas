@@ -1,6 +1,5 @@
 (ns phlegyas.vfs
-  (:require [clojure.core.async :as async]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
             [phlegyas.types :refer :all]
             [phlegyas.util :refer :all]
             [clojure.string :as string]
@@ -11,6 +10,13 @@
            [java.nio.file.attribute BasicFileAttributes PosixFilePermission PosixFilePermissions PosixFileAttributes]))
 
 ;; an example VFS layer. currently a mess, needs cleanup.
+
+;; linting aid.
+(declare state current-state frame-ftype frame-tag frame-qid-type frame-qid-vers frame-qid-path frame-nwqids
+         frame-wnames frame-iounit frame-iomode frame-count frame-ssize frame-size frame-type frame-mode
+         frame-atime frame-mtime frame-length frame-name frame-uname frame-muid frame-data frame-offset
+         frame-fid frame-ename frame-version frame-afid frame-aname frame-oldtag frame-newfid frame-msize
+         mapping fs-name fs fsid path)
 
 (defrecord stat
            [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
@@ -344,7 +350,7 @@
          search-path path
          paths []]
     (let [candidate (first candidates)
-          candidate-path (if candidate (wname->path fs search-path candidate))]
+          candidate-path (when candidate (wname->path fs search-path candidate))]
       (cond
         (nil? candidate) paths
         (nil? candidate-path) paths

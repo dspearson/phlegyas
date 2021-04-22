@@ -1,6 +1,6 @@
 (ns phlegyas.core
   (:require [clojure.tools.cli :refer [parse-opts]]
-            [phlegyas.server :refer :all])
+            [phlegyas.server :as server])
   (:gen-class))
 
 (def cli-options
@@ -12,4 +12,4 @@
 (defn -main
   [& args]
   (let [opts (parse-opts args cli-options)]
-    (start-server (get-in opts [:options :port]))))
+    (server/start-server (get-in opts [:options :port]))))
