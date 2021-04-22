@@ -1,10 +1,14 @@
 (ns phlegyas.client-server-test
-  (:use [clojure test])
   (:require [aleph.tcp :as tcp]
             [phlegyas.server :as server]
-            [phlegyas.util :refer :all]
-            [phlegyas.types :refer :all]
-            [phlegyas.client :refer :all]))
+            [clojure.test :refer [deftest is]]
+            [phlegyas.util :refer [with-server]]
+            [phlegyas.types :refer [protocol-version]]
+            [phlegyas.client :refer [connect
+                                     clone-fid
+                                     walk-fid
+                                     remove-fid
+                                     lsdir]]))
 
 (def test-port 10003)
 

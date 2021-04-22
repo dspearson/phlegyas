@@ -3,10 +3,12 @@
             [manifold.stream :as s]
             [manifold.deferred :as d]
             [clojure.string :as cs]
-            [aleph.tcp :as tcp]
-            [phlegyas.util :refer :all]
-            [phlegyas.types :refer :all]
-            [phlegyas.frames :refer :all]))
+            [phlegyas.types :refer [max-message-size protocol-version nofid
+                                    get-operation frame-layouts]]
+            [phlegyas.frames :refer [assemble-packet frame-assembler]]
+            [phlegyas.util :refer [assoc-val dissoc-val disj-val
+                                   keywordize wrap-buffer pack]]
+            [aleph.tcp :as tcp]))
 
 ;; an example implementation of a client.
 
@@ -26,12 +28,9 @@
   "Adds a new fid that results from a successful walk to the atomic map."
   [mapping fid newfid paths]
   (swap! mapping (fn [y] (let [parent (get y fid)
-                               parent-name (:name parent)
-                               parent-uname (:uname parent)
-                               path-prefix (if (= parent "/") "" parent)]
-                           (assoc y newfid
-                                  {:name (str parent "/" (cs/join "/" paths))
-                                   :uname parent-uname})))))
+                              parent-uname (:uname parent)]
+                          (assoc y newfid {:name (str parent "/" (cs/join "/" paths))
+                                           :uname parent-uname})))))
 
 (defn tag-and-assemble
   "Add a tag to the request, and assemble it into a byte-array."

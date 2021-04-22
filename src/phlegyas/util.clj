@@ -1,11 +1,10 @@
 (ns phlegyas.util
-  (:require [buddy.core.hash :as hash]
-            [buddy.core.codecs :refer :all])
-  (:import java.nio.ByteBuffer))
+  (:import java.nio.ByteBuffer
+           java.security.MessageDigest))
 
 (defmacro defn-frame-binding
   "A wrapper around defn which wraps the body forms in `with-frame-bindings`,
-  which is an anamorphic macro that creates a lexical environment and defines
+  which is an anaphoric macro that creates a lexical environment and defines
   a number of useful variables for us."
   ([name args body]
    `(defn ~name ~args (do (with-frame-bindings ~body))))
@@ -112,7 +111,7 @@
 (defn sizeof-string
   "Count the number of bytes in a string."
   [s]
-  (count (^Bytes .getBytes ^String s "UTF-8")))
+  (count (#^bytes .getBytes ^String s "UTF-8")))
 
 (defn parse-int
   "Coerce a string to integer."
@@ -121,4 +120,5 @@
 
 (defn sha-str
   [s]
-  (bytes->hex (hash/sha256 s)))
+  (let [digest (.digest (MessageDigest/getInstance "SHA-256") (.getBytes ^String s "UTF-8"))]
+    (apply str (map (partial format "%02x") digest))))

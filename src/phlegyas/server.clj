@@ -1,12 +1,8 @@
 (ns phlegyas.server
-  (:require [phlegyas.frames :refer :all]
-            [phlegyas.state :refer :all]
-            [phlegyas.vfs :refer :all]
-            [phlegyas.util :refer :all]
-            [phlegyas.client :refer :all]
-            [clojure.core.async :as async]
+  (:require [phlegyas.frames :refer [frame-assembler assemble-packet]]
+            [phlegyas.state :refer [state-handler consume]]
+            [phlegyas.vfs :refer [example-filesystem!]]
             [manifold.stream :as s]
-            [manifold.deferred :as d]
             [aleph.tcp :as tcp]))
 
 (defn server!
@@ -28,10 +24,10 @@
     connection))
 
 (defn tcp-route
-  [s info]
+  [s _]
   (let [in (s/stream)
         out (s/stream)
-        ninep-server (server! in out)]
+        _ (server! in out)]
     (s/connect s in)
     (s/connect out s)))
 

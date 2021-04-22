@@ -1,11 +1,14 @@
 (ns phlegyas.frames
-  (:require [phlegyas.util :refer :all]
-            [phlegyas.types :refer :all]
+  (:require [phlegyas.types :refer [reverse-frame-byte
+                                    put-operation
+                                    get-operation
+                                    frame-layouts
+                                    frame-byte]]
+            [phlegyas.util :refer [wrap-buffer
+                                   pack
+                                   keywordize]]
             [clojure.core.async :as async]
-            [manifold.deferred :as d]
-            [manifold.stream :as s]
-            [primitive-math :as math
-             :refer [uint->int]]))
+            [manifold.stream :as s]))
 
 (defmacro frame-length
   "Check reported frame length."
@@ -25,7 +28,7 @@
   of the message type found in the `phlegyas.types` namespace."
   [packet]
   (let [^java.nio.ByteBuffer frame (wrap-buffer packet)
-        len (uint->int (frame-length frame))
+        _ (frame-length frame)
         ftype (frame-type frame)
         layout (get frame-layouts ftype)]
     (into {:frame ftype} (for [field layout] {field ((get get-operation field) frame)}))))
