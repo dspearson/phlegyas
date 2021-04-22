@@ -28,9 +28,9 @@
   of the message type found in the `phlegyas.types` namespace."
   [packet]
   (let [^java.nio.ByteBuffer frame (wrap-buffer packet)
-        _ (frame-length frame)
-        ftype (frame-type frame)
-        layout (get frame-layouts ftype)]
+        _                          (frame-length frame)
+        ftype                      (frame-type frame)
+        layout                     (get frame-layouts ftype)]
     (into {:frame ftype} (for [field layout] {field ((get get-operation field) frame)}))))
 
 (defn assemble
@@ -46,7 +46,7 @@
   "Takes in a map representing a frame (see `frame-layouts` in the `phlegyas.types` namespace, and
   intro(9P) manual), and encodes it."
   [frame]
-  (let [ftype (:frame frame)
+  (let [ftype  (:frame frame)
         layout (get frame-layouts ftype)]
     (-> (for [typ layout] ((get put-operation typ) (get frame typ))) flatten (assemble ftype) pack)))
 

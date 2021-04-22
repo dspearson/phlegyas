@@ -21,23 +21,23 @@
                            (if-not (contains? p i)
                              i
                              (recur (inc i)))))
-        [old new] (swap-vals! a (fn [x] (conj x (next-available x))))]
+        [old new]      (swap-vals! a (fn [x] (conj x (next-available x))))]
     (first (sets/difference new old))))
 
 (defn add-child-mapping
   "Adds a new fid that results from a successful walk to the atomic map."
   [mapping fid newfid paths]
-  (swap! mapping (fn [y] (let [parent (get y fid)
-                              parent-uname (:uname parent)]
-                          (assoc y newfid {:name (str parent "/" (cs/join "/" paths))
-                                           :uname parent-uname})))))
+  (swap! mapping (fn [y] (let [parent       (get y fid)
+                               parent-uname (:uname parent)]
+                           (assoc y newfid {:name  (str parent "/" (cs/join "/" paths))
+                                            :uname parent-uname})))))
 
 (defn tag-and-assemble
   "Add a tag to the request, and assemble it into a byte-array."
   [x in-flight-requests tagpool]
-  (let [frame (:frame x)
+  (let [frame    (:frame x)
         response (:response x)
-        tag (next-val tagpool)]
+        tag      (next-val tagpool)]
     (assoc-val in-flight-requests (keywordize tag) response)
     (-> frame (assoc :tag tag) assemble-packet)))
 
@@ -84,9 +84,9 @@
   ([connection uname aname]
    (if (nil? @(:protocol-version connection))
      (throw (Exception. "no protocol negotiated yet."))
-     (let [fid-pool (:fid-pool connection)
+     (let [fid-pool   (:fid-pool connection)
            attach-fid (next-val fid-pool)
-           response @(transact connection {:frame :Tattach :uname uname :aname aname :fid attach-fid :afid nofid})]
+           response   @(transact connection {:frame :Tattach :uname uname :aname aname :fid attach-fid :afid nofid})]
        (if (= (:frame response) :Rattach)
          (do
            (assoc-val (:mapping connection) attach-fid {:name "/" :uname uname})
@@ -98,9 +98,9 @@
 (defn clone-fid
   "Takes a connection and a fid, and clones it. Returns the new fid."
   [connection fs-handle]
-  (let [fid-pool (:fid-pool connection)
+  (let [fid-pool      (:fid-pool connection)
         requested-fid (next-val fid-pool)
-        response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames []})]
+        response      @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames []})]
     (if (= (:frame response) :Rwalk)
       (do
         (assoc-val (:mapping connection) requested-fid (get @(:mapping connection) fs-handle))
@@ -112,9 +112,9 @@
 (defn walk-fid
   "Takes a connection, fid, and a vector of paths to walk. If successful, returns the new fid."
   [connection fs-handle paths]
-  (let [fid-pool (:fid-pool connection)
+  (let [fid-pool      (:fid-pool connection)
         requested-fid (next-val fid-pool)
-        response @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames paths})]
+        response      @(transact connection {:frame :Twalk :fid fs-handle :newfid requested-fid :wnames paths})]
     (cond
       (not= (:frame response) :Rwalk)
       (throw (Exception. "unable to walk."))
@@ -171,7 +171,7 @@
   "Takes a connection, fid, and iounit. If successful, returns the read data."
   [connection fid iounit]
   (loop [offset 0
-         buf []]
+         buf    []]
     (let [data (read-fid-partial connection fid offset iounit)]
       (if (empty? data)
         (-> buf flatten pack)
@@ -181,11 +181,11 @@
   "Takes a connection, and a fid representing a directory. Returns a map of stats,
   with keys representing the qid-path of the stat."
   [connection fid]
-  (let [fid-clone (clone-fid connection fid)
-        iounit (open-fid connection fid-clone 0)
-        data (read-fid connection fid-clone iounit)
-        _ (clunk-fid connection fid-clone)
-        layout (subvec (:Rstat frame-layouts) 2)
+  (let [fid-clone                (clone-fid connection fid)
+        iounit                   (open-fid connection fid-clone 0)
+        data                     (read-fid connection fid-clone iounit)
+        _                        (clunk-fid connection fid-clone)
+        layout                   (subvec (:Rstat frame-layouts) 2)
         ^java.nio.ByteBuffer buf (wrap-buffer data)]
     (loop [stats {}]
       (if (zero? (.remaining buf))
@@ -198,9 +198,9 @@
   and clunks. Returns the data read."
   [connection fid]
   (let [fid-clone (clone-fid connection fid)
-        io-unit (open-fid connection fid-clone 0)
-        data (read-fid connection fid-clone io-unit)
-        _ (clunk-fid connection fid-clone)]
+        io-unit   (open-fid connection fid-clone 0)
+        data      (read-fid connection fid-clone io-unit)
+        _         (clunk-fid connection fid-clone)]
     data))
 
 (defn lsdir
@@ -216,28 +216,28 @@
   and will automatically handle matching responses for you. Calls to the returned
   function are a deferred that is delivered when the response is received."
   [in]
-  (let [tagpool (atom #{})
-        fidpool (atom #{})
-        incoming-frame-stream (s/stream)
-        outgoing-frame-stream (s/stream)
-        in-flight-requests (atom {})
+  (let [tagpool                (atom #{})
+        fidpool                (atom #{})
+        incoming-frame-stream  (s/stream)
+        outgoing-frame-stream  (s/stream)
+        in-flight-requests     (atom {})
         frame-assembler-thread (frame-assembler in incoming-frame-stream)]
-    (s/consume (fn [x] (let [tag (:tag x)
+    (s/consume (fn [x] (let [tag      (:tag x)
                              response ((keywordize tag) @in-flight-requests)]
                          (dissoc-val in-flight-requests (keywordize tag))
                          (disj-val tagpool tag)
                          (d/success! response x))) incoming-frame-stream)
     (s/connect-via outgoing-frame-stream #(s/put! in (tag-and-assemble % in-flight-requests tagpool)) in)
-    {:tag-pool tagpool
-     :fid-pool fidpool
-     :open-fids (atom {})
-     :mapping (atom #{})
-     :protocol-version (atom nil)
-     :maximum-message-size (atom nil)
+    {:tag-pool              tagpool
+     :fid-pool              fidpool
+     :open-fids             (atom {})
+     :mapping               (atom #{})
+     :protocol-version      (atom nil)
+     :maximum-message-size  (atom nil)
      :incoming-frame-stream incoming-frame-stream
      :outgoing-frame-stream outgoing-frame-stream
-     :in-flight-requests in-flight-requests
-     :frame-assembler frame-assembler-thread}))
+     :in-flight-requests    in-flight-requests
+     :frame-assembler       frame-assembler-thread}))
 
 (defn connect
   "Connect to a host on a given port, optionally specifying the user and
@@ -251,6 +251,6 @@
 
   ([host port uname aname]
    (let [connection (client! @(tcp/client {:host host :port port}))
-         _ (negotiate-version connection)
-         _ (attach-filesystem connection uname aname)]
+         _          (negotiate-version connection)
+         _          (attach-filesystem connection uname aname)]
      connection)))

@@ -40,7 +40,7 @@
     (if (zero? nwname)
       []
       (loop [wnames []
-             count nwname]
+             count  nwname]
         (if (zero? count)
           wnames
           (recur (conj wnames (get-string buffer)) (dec count)))))))
@@ -51,7 +51,7 @@
   (let [nwqid (-> buffer .getShort short->ushort)]
     (if (zero? nwqid)
       []
-      (loop [qids []
+      (loop [qids  []
              count nwqid]
         (if (zero? count)
           qids
@@ -69,7 +69,7 @@
 (defn put-short
   "Wrap short in a byte-array."
   [x]
-  (let [data (byte-array 2)
+  (let [data                        (byte-array 2)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putShort buffer (ushort->short x))
     data))
@@ -77,7 +77,7 @@
 (defn put-int
   "Wrap int in a byte-array."
   [x]
-  (let [data (byte-array 4)
+  (let [data                        (byte-array 4)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putInt buffer (uint->int x))
     data))
@@ -85,7 +85,7 @@
 (defn put-long
   "Wrap long in a byte-array."
   [x]
-  (let [data (byte-array 8)
+  (let [data                        (byte-array 8)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putLong buffer (ulong->long x))
     data))
@@ -93,9 +93,9 @@
 (defn put-string
   "Wrap 9P string[s] in a byte-array."
   [x]
-  (let [string-bytes (.getBytes ^String x "UTF-8")
-        string-size (count string-bytes)
-        data (byte-array (+ 2 string-size))
+  (let [string-bytes                (.getBytes ^String x "UTF-8")
+        string-size                 (count string-bytes)
+        data                        (byte-array (+ 2 string-size))
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (doto buffer
       (.putShort (ushort->short string-size))
@@ -105,7 +105,7 @@
 (defn put-byte
   "Wrap byte in a byte-array."
   [x]
-  (let [data (byte-array 1)
+  (let [data                        (byte-array 1)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (doto buffer
       (.put (ubyte->byte x)))
@@ -115,9 +115,9 @@
   "Wrap nwname*wname in a byte-array. Prepends the data with a short,
   representing the number of elements in the data."
   [x]
-  (let [buffer-size (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes ^String x "UTF-8")))) x)))
-        num-of-elements (count x)
-        data (byte-array buffer-size)
+  (let [buffer-size                 (+ 2 (apply + (map (fn [x] (+ 2 (count (.getBytes ^String x "UTF-8")))) x)))
+        num-of-elements             (count x)
+        data                        (byte-array buffer-size)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (.putShort buffer (ushort->short num-of-elements))
     (dotimes [n num-of-elements]
@@ -130,8 +130,8 @@
   "Wrap nwqid*wqid in a byte-array. Prepends the data with a short,
   representing the number of elements in the data."
   [x]
-  (let [num-of-elements (count x)
-        data (byte-array (+ 2 (* 13 num-of-elements)))
+  (let [num-of-elements             (count x)
+        data                        (byte-array (+ 2 (* 13 num-of-elements)))
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (^Short .putShort buffer num-of-elements)
     (dotimes [n num-of-elements]
@@ -145,8 +145,8 @@
   "Wrap a 9P byte collection in byte-array. Prepends the data with an integer representing
   the byte count of the data."
   [x]
-  (let [size (count x)
-        data (byte-array 4)
+  (let [size                        (count x)
+        data                        (byte-array 4)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
     (doto buffer
       (.putInt size))

@@ -18,14 +18,11 @@
          frame-fid frame-ename frame-version frame-afid frame-aname frame-oldtag frame-newfid frame-msize
          mapping fs-name fs fsid path)
 
-(defrecord stat
-           [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
+(defrecord stat [dev qid-type qid-vers qid-path mode atime mtime length name size ssize uid gid muid children contents permissions parent])
 
-(defrecord qid
-           [qid-type qid-vers qid-path])
+(defrecord qid [qid-type qid-vers qid-path])
 
-(defrecord filesystem
-           [files path-pool id root-path])
+(defrecord filesystem [files path-pool id root-path])
 
 (defn stat->qid
   [stat]
@@ -61,8 +58,8 @@
 (defn permission-set
   "Get the set of permissions for a file."
   [^java.io.File fh]
-  (let [permissions (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
-                      (string/lower-case (str x)))
+  (let [permissions    (for [x (-> fh .toPath (Files/getPosixFilePermissions (into-array [LinkOption/NOFOLLOW_LINKS])))]
+                         (string/lower-case (str x)))
         permission-map (for [x ["owner" "group" "others"]]
                          {(keyword x) (set (map (fn [x] (keyword (second (string/split x #"_"))))
                                                 (filter #(string/starts-with? % x) permissions)))})]
@@ -135,34 +132,34 @@
   arguments `read-fn` is a function that is called upon reads, `parent` is the path of
   the directory the file belongs to, and `length` can be used to manually set file size."
   [file path & {:keys [read-fn parent length] :or {read-fn #'identity parent nil length nil}}]
-  (let [fh (io/file file)
-        uid (owner fh)
-        gid (group fh)
-        muid uid
+  (let [fh    (io/file file)
+        uid   (owner fh)
+        gid   (group fh)
+        muid  uid
         fname (if (= file "/") "/" (filename fh))
         mtime (modification-time fh)
-        ftyp (if (directory? fh) (:dir qt-mode) (:file qt-mode))
-        size (stat-size fname uid gid muid)]
-    (map->stat {:qid-type ftyp
-                :qid-vers (if (= file "/") 0 (hash mtime))
-                :qid-path path
-                :permissions (permission-set fh)
-                :type 0
-                :dev 0
+        ftyp  (if (directory? fh) (:dir qt-mode) (:file qt-mode))
+        size  (stat-size fname uid gid muid)]
+    (map->stat {:qid-type      ftyp
+                :qid-vers      (if (= file "/") 0 (hash mtime))
+                :qid-path      path
+                :permissions   (permission-set fh)
+                :type          0
+                :dev           0
                 :absolute-path (.getAbsolutePath fh)
-                :mode (bit-or (octal-mode fh) ftyp)
-                :atime (access-time fh)
-                :mtime mtime
-                :length (if (directory? fh) 0 (or length (sizeof fh)))
-                :name fname
-                :uid uid
-                :gid gid
-                :muid muid
-                :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
-                :size size
-                :children {}
-                :parent (if (nil? parent) (keywordize path) parent)
-                :read-fn read-fn})))
+                :mode          (bit-or (octal-mode fh) ftyp)
+                :atime         (access-time fh)
+                :mtime         mtime
+                :length        (if (directory? fh) 0 (or length (sizeof fh)))
+                :name          fname
+                :uid           uid
+                :gid           gid
+                :muid          muid
+                :ssize         (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
+                :size          size
+                :children      {}
+                :parent        (if (nil? parent) (keywordize path) parent)
+                :read-fn       read-fn})))
 
 (defn fetch-data
   "Helper function for calling `read-fn` on a stat."
@@ -198,7 +195,7 @@
   provided parent path list of children to include the newly inserted stat."
   [fs parent stat]
   (let [files (:files fs)
-        path (or (:qid-path stat) (next-available-path fs))]
+        path  (or (:qid-path stat) (next-available-path fs))]
     (-> fs
         (assoc-in [:files (keywordize path)] (assoc stat :parent parent :qid-path path))
         (update-children parent (keywordize (sha-str (:name stat))) (keywordize path)))))
@@ -207,33 +204,33 @@
   "Create a filesystem record."
   []
   (let [path-pool (atom 0)
-        root-dir (root-dir 0)]
+        root-dir  (root-dir 0)]
     (map->filesystem {:files {:0 root-dir} :path-pool path-pool :id (keyword (gensym "filesystem_")) :root-path :0})))
 
 (defn synthetic-file
   "Create a synthetic file stat."
   [filename & {:keys [owner group mode read-fn write-fn metadata append]
-               :or {owner "root" group "root" mode 0400 append false}}]
+               :or   {owner "root" group "root" mode 0400 append false}}]
   (let [size (stat-size filename owner group owner)]
-    (map->stat {:qid-type (if append (:append qt-mode) (:file qt-mode))
-                :qid-vers 0
+    (map->stat {:qid-type    (if append (:append qt-mode) (:file qt-mode))
+                :qid-vers    0
                 :permissions {:owner #{:read}, :group #{:read}, :others #{:read}}
-                :type 0
-                :dev 0
-                :mode mode
-                :atime 0
-                :mtime 0
-                :length 0
-                :name filename
-                :uid owner
-                :gid group
-                :muid owner
-                :ssize (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
-                :size size
-                :children #{}
-                :metadata metadata
-                :write-fn (or write-fn read-fn)
-                :read-fn read-fn})))
+                :type        0
+                :dev         0
+                :mode        mode
+                :atime       0
+                :mtime       0
+                :length      0
+                :name        filename
+                :uid         owner
+                :gid         group
+                :muid        owner
+                :ssize       (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
+                :size        size
+                :children    #{}
+                :metadata    metadata
+                :write-fn    (or write-fn read-fn)
+                :read-fn     read-fn})))
 
 (defn-frame-binding example-function-for-files
   [& {:keys [connection frame stat]}]
@@ -245,8 +242,8 @@
   "Get the stat corresponding to the fid in the current state of the connection."
   [state fid]
   (let [mapping (fid->mapping state fid)
-        path (:path mapping)
-        fs ((:filesystem mapping) (:fs-map state))]
+        path    (:path mapping)
+        fs      ((:filesystem mapping) (:fs-map state))]
     (get (:files fs) path)))
 
 (defmacro fid->fsname
@@ -259,30 +256,30 @@
   "Update the stat associated with fid by adding data to it."
   [state fid data]
   (let [fs-name (fid->fsname state fid)
-        stat (into (fid->stat state fid) data)]
+        stat    (into (fid->stat state fid) data)]
     (update-in state [:fs-map fs-name :files (keywordize (:qid-path stat))] (fn [x] (into x stat)))))
 
 (defn-frame-binding example-read-write
   [& {:keys [connection frame stat]}]
   (let [count-bytes (count frame-data)
-        contents (:contents (:metadata stat))]
+        contents    (:contents (:metadata stat))]
     (if (= frame-ftype :Twrite)
       (do
         (swap! state (fn [x] (update-stat x frame-fid {:metadata {:contents (conj contents frame-data)}
-                                                       :length (+ (:length stat) count-bytes)})))
+                                                       :length   (+ (:length stat) count-bytes)})))
         (uint->int count-bytes))
       (-> contents flatten pack))))
 
 (defn-frame-binding print-current-time
   [& {:keys [connection frame stat]}]
-  (let [current-time (quot (System/currentTimeMillis) 1000)
+  (let [current-time       (quot (System/currentTimeMillis) 1000)
         current-time-bytes (.getBytes (str current-time "\n") "UTF-8")
-        file-time (:time (:metadata stat))]
+        file-time          (:time (:metadata stat))]
     (swap! state (fn [x] (update-stat x frame-fid {:metadata {:time current-time}
-                                                   :atime current-time
-                                                   :mtime current-time
+                                                   :atime    current-time
+                                                   :mtime    current-time
                                                    :qid-vers (int (hash current-time))
-                                                   :length (ulong->long (+ 1 frame-offset (count current-time-bytes)))})))
+                                                   :length   (ulong->long (+ 1 frame-offset (count current-time-bytes)))})))
 
     (if (or (zero? frame-offset) (not= current-time file-time))
       current-time-bytes
@@ -290,8 +287,8 @@
 
 (defn example-filesystem!
   []
-  (let [root-fs (create-filesystem)
-        root-path :0
+  (let [root-fs              (create-filesystem)
+        root-path            :0
         another-example-file (synthetic-file "current-time" :read-fn #'print-current-time :metadata {:time 0} :append true)]
     (-> root-fs
         (insert-file root-path (synthetic-file "write-to-me" :read-fn #'example-read-write))
@@ -346,15 +343,15 @@
   case, a fid is not changed. Walks are only successful if the entire path can
   be walked."
   [fs path wnames]
-  (loop [candidates wnames
+  (loop [candidates  wnames
          search-path path
-         paths []]
-    (let [candidate (first candidates)
+         paths       []]
+    (let [candidate      (first candidates)
           candidate-path (when candidate (wname->path fs search-path candidate))]
       (cond
-        (nil? candidate) paths
+        (nil? candidate)      paths
         (nil? candidate-path) paths
-        :else (recur (rest candidates) candidate-path (conj paths candidate-path))))))
+        :else                 (recur (rest candidates) candidate-path (conj paths candidate-path))))))
 
 (defn stat->role
   "Given a stat, and a user, find what role we have on it."
@@ -362,7 +359,7 @@
   (cond
     (= user (:uid stat)) :owner
     (= user (:gid stat)) :group
-    :else :other))
+    :else                :other))
 
 (defn allowed-op?
   [permissions operation]
@@ -375,13 +372,13 @@
   (cond
     (= (:uid stat) (:uid role)) :owner
     (= (:gid stat) (:gid role)) :group
-    :else :others))
+    :else                       :others))
 
 (defn permission-check
   "Given a stat, a role, and an operation we want to perform, see
   if we are allowed to perform it."
   [stat rolemap operation]
-  (let [role (role-resolve stat rolemap)
+  (let [role  (role-resolve stat rolemap)
         perms (role (:permissions stat))]
     (allowed-op? perms operation)))
 
@@ -404,9 +401,9 @@
   This can be then consulted on subsequent directory reads."
   [fs paths max-size]
   (let [layout (subvec (:Rstat frame-layouts) 2)]
-    (loop [accum '()
-           last-path nil
-           data-size 0
+    (loop [accum           '()
+           last-path       nil
+           data-size       0
            paths-remaining (keys paths)]
       (cond
         (> data-size max-size)

@@ -38,7 +38,7 @@
            :another-field 2}}"
   [data]
   `(let [state-update# (:update ~data)
-         reply-typ# ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
+         reply-typ#    ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
          frame-update# (assoc (:reply ~data) :frame reply-typ#)]
      (if state-update#
        (swap! ~'state state-update#))
@@ -95,11 +95,11 @@
   [frame connection]
   (cond
     (not (string/starts-with? frame-version protocol-version)) (state! {:reply {:version "unknown"}})
-    (<= frame-msize max-message-size) (state! {:update (fn [x] (assoc x :msize frame-msize))
-                                               :reply {:version protocol-version}})
-    :else (state! {:update (fn [x] (assoc x :msize max-message-size))
-                   :reply {:version protocol-version
-                           :msize max-message-size}})))
+    (<= frame-msize max-message-size)                          (state! {:update (fn [x] (assoc x :msize frame-msize))
+                                                                        :reply  {:version protocol-version}})
+    :else                                                      (state! {:update (fn [x] (assoc x :msize max-message-size))
+                                                                        :reply  {:version protocol-version
+                                                                                 :msize   max-message-size}})))
 
 ;; Tauth:
 ;; not currently implemented, i.e. no authentication is required.
@@ -132,15 +132,15 @@
   the file tree to access (aname). The afid argument specifies a fid previously
   established by an auth message."
   [frame connection]
-  (let [root-fs ((:root-filesystem current-state))
+  (let [root-fs    ((:root-filesystem current-state))
         root-fs-id (:id root-fs)
-        root-path (:root-path root-fs)]
+        root-path  (:root-path root-fs)]
     (state! {:update (fn [x] (-> x
                                  (add-fs root-fs)
                                  (add-fid frame-fid frame-tag)
                                  (add-mapping frame-fid root-fs-id root-path)
                                  (add-role root-fs-id frame-uname frame-uname)))
-             :reply (path->qid root-fs root-path)})))
+             :reply  (path->qid root-fs root-path)})))
 
 ;; Tflush:
 ;; not currently implemented.
@@ -191,15 +191,15 @@
     (state! {:update (fn [x] (-> x
                                  (add-fid frame-newfid frame-tag)
                                  (add-mapping frame-newfid fs-name path)))
-             :reply {:nwqids []}})
+             :reply  {:nwqids []}})
     (let [wname-paths (walk-path fs path frame-wnames)
-          qids (for [p wname-paths] (stat->qid (path->stat fs p)))]
+          qids        (for [p wname-paths] (stat->qid (path->stat fs p)))]
       (if (< (count wname-paths) (count frame-wnames))
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x
                                      (add-fid frame-newfid frame-tag)
                                      (add-mapping frame-newfid fs-name (peek wname-paths))))
-                 :reply {:nwqids qids}})))))
+                 :reply  {:nwqids qids}})))))
 
 ;; Topen:
 ;; contains rudimentary role permission check.
@@ -219,10 +219,10 @@
     (if-not (permission-check stat role :oread)
       (error! "no read permission")
       (state! {:update (fn [x] (update-mapping x frame-fid {:offset 0}))
-               :reply {:iounit (iounit!)
-                       :qid-type (:qid-type stat)
-                       :qid-vers (:qid-vers stat)
-                       :qid-path (:qid-path stat)}}))))
+               :reply  {:iounit   (iounit!)
+                        :qid-type (:qid-type stat)
+                        :qid-vers (:qid-vers stat)
+                        :qid-path (:qid-path stat)}}))))
 
 ;; Tcreate:
 ;; rudimentary example of file creation. all new files are initialised with the
@@ -243,20 +243,20 @@
   size[4] Tcreate tag[2] fid[4] name[s] perm[4] mode[1]
   size[4] Rcreate tag[2] qid[13] iounit[4]"
   [frame connection]
-  (let [new-stat (synthetic-file frame-name :read-fn #'example-function-for-files)
+  (let [new-stat    (synthetic-file frame-name :read-fn #'example-function-for-files)
         parent-stat (fid->stat current-state frame-fid)
         parent-path (:parent parent-stat)
-        file-path (next-available-path fs)]
+        file-path   (next-available-path fs)]
     (state! {:update (fn [x]
                        (-> x
                            (assoc-in [:fs-map fs-name :files (keywordize file-path)]
                                      (into new-stat {:qid-path file-path :parent parent-path}))
                            (update-in [:fs-map fs-name :files parent-path]
                                       (fn [y] (assoc y :children (assoc (:children y) (keywordize (sha-str (:name new-stat))) (keywordize file-path)))))))
-             :reply {:qid-type (:qid-type new-stat)
-                     :qid-vers (:qid-vers new-stat)
-                     :qid-path file-path
-                     :iounit (iounit!)}})))
+             :reply  {:qid-type (:qid-type new-stat)
+                      :qid-vers (:qid-vers new-stat)
+                      :qid-path file-path
+                      :iounit   (iounit!)}})))
 
 ;; Tread:
 ;; first, fetch the stat of the fid, and find out what the type bit is.
@@ -287,7 +287,7 @@
   size[4] Tread tag[2] fid[4] offset[8] count[4]
   size[4] Rread tag[2] count[4] data[count]
 
-	The read request asks for count bytes of data from the file identified by fid,
+  The read request asks for count bytes of data from the file identified by fid,
   which must be opened for reading, starting offset bytes after the beginning of
   the file. The bytes are returned with the read reply message.
 
@@ -302,7 +302,7 @@
   illegal in a directory."
   [frame connection]
   (let [stat (path->stat fs (:path mapping))
-        typ (stat-type stat)]
+        typ  (stat-type stat)]
     (case typ
 
       :dir (if (and (pos? frame-offset) (not= frame-offset (:offset mapping)))
@@ -321,9 +321,9 @@
                    ; were not visited in this iteration, so that followup reads can continue where we left off.
                    [dir-data paths-remaining] (directory-reader fs dirpaths frame-count)]
 
-               (state! {:update (fn [x] (update-mapping x frame-fid {:offset (+ frame-offset (count dir-data))
+               (state! {:update (fn [x] (update-mapping x frame-fid {:offset          (+ frame-offset (count dir-data))
                                                                      :paths-remaining paths-remaining}))
-                        :reply {:data dir-data}})))
+                        :reply  {:data dir-data}})))
 
       :file (if (and (not= 0 (:length stat)) (>= frame-offset (:length stat))) ; if offset >= length, it means that we are
               (state! {:reply {:data nil}})                                    ; reading beyond end of file, so return no data.
@@ -360,7 +360,7 @@
   field returned by open(9P), if non-zero, reports the maximum size that is
   guaranteed to be transferred atomically."
   [frame connection]
-  (let [stat (fid->stat current-state frame-fid)
+  (let [stat     (fid->stat current-state frame-fid)
         write-fn (:write-fn stat)]
     (if write-fn
       (let [bytes-written (write-fn :connection connection :frame frame :stat stat)]
@@ -417,8 +417,8 @@
   will yield a “phase error.” U9fs follows the semantics of the underlying
   Unix file system, so other fids typically remain usable."
   [frame connection]
-  (let [stat (fid->stat current-state frame-fid)
-        dir-stat (get (:files fs) (:parent stat))
+  (let [stat         (fid->stat current-state frame-fid)
+        dir-stat     (get (:files fs) (:parent stat))
         new-children (dissoc (:children dir-stat) (keywordize (sha-str (:name stat))))]
     (state! {:update (fn [x] (-> x
                                  (update-in [:fs-map fs-name :files (:parent stat)] (fn [y] (assoc y :children new-children)))
@@ -452,7 +452,7 @@
                  the server
   uid[ s ]       owner name
   gid[ s ]       group name
-  muid[ s ]      name of the user who last modified the file 
+  muid[ s ]      name of the user who last modified the file
 
   Integers in this encoding are in little-endian order (least significant byte
   first).

@@ -85,69 +85,69 @@
                  :Twstat   126
                  :Rwstat   127})
 
-(def frame-layouts {:Tversion  [:tag :msize :version]
-                    :Rversion  [:tag :msize :version]
+(def frame-layouts {:Tversion [:tag :msize :version]
+                    :Rversion [:tag :msize :version]
 
-                    :Tauth     [:tag :afid :uname :aname]
-                    :Rauth     [:tag :qid-type :qid-vers :qid-path]
+                    :Tauth    [:tag :afid :uname :aname]
+                    :Rauth    [:tag :qid-type :qid-vers :qid-path]
 
-                    :Rerror    [:tag :ename]
+                    :Rerror   [:tag :ename]
 
-                    :Tflush    [:tag :oldtag]
-                    :Rflush    [:tag]
+                    :Tflush   [:tag :oldtag]
+                    :Rflush   [:tag]
 
-                    :Tattach   [:tag :fid :afid :uname :aname]
-                    :Rattach   [:tag :qid-type :qid-vers :qid-path]
+                    :Tattach  [:tag :fid :afid :uname :aname]
+                    :Rattach  [:tag :qid-type :qid-vers :qid-path]
 
-                    :Twalk     [:tag :fid :newfid :wnames]
-                    :Rwalk     [:tag :nwqids]
+                    :Twalk    [:tag :fid :newfid :wnames]
+                    :Rwalk    [:tag :nwqids]
 
-                    :Topen     [:tag :fid :iomode]
-                    :Ropen     [:tag :qid-type :qid-vers :qid-path :iounit]
+                    :Topen    [:tag :fid :iomode]
+                    :Ropen    [:tag :qid-type :qid-vers :qid-path :iounit]
 
-                    :Tcreate   [:tag :fid :name :perm :iomode]
-                    :Rcreate   [:tag :qid-type :qid-vers :qid-path :iounit]
+                    :Tcreate  [:tag :fid :name :perm :iomode]
+                    :Rcreate  [:tag :qid-type :qid-vers :qid-path :iounit]
 
-                    :Tread     [:tag :fid :offset :count]
-                    :Rread     [:tag :data]
+                    :Tread    [:tag :fid :offset :count]
+                    :Rread    [:tag :data]
 
-                    :Twrite    [:tag :fid :offset :data]
-                    :Rwrite    [:tag :count]
+                    :Twrite   [:tag :fid :offset :data]
+                    :Rwrite   [:tag :count]
 
-                    :Tclunk    [:tag :fid]
-                    :Rclunk    [:tag]
+                    :Tclunk   [:tag :fid]
+                    :Rclunk   [:tag]
 
-                    :Tremove   [:tag :fid]
-                    :Rremove   [:tag]
+                    :Tremove  [:tag :fid]
+                    :Rremove  [:tag]
 
-                    :Tstat     [:tag :fid]
-                    :Rstat     [:tag :ssize :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
+                    :Tstat    [:tag :fid]
+                    :Rstat    [:tag :ssize :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
 
-                    :Twstat    [:tag :fid :ssize :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
-                    :Rwstat    [:tag]})
+                    :Twstat   [:tag :fid :ssize :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
+                    :Rwstat   [:tag]})
 
-(def type-size {:tag       2
-                :oldtag    2
-                :msize     4
-                :size      2
-                :ssize     2
-                :fid       4
-                :afid      4
-                :newfid    4
-                :perm      4
-                :iounit    4
-                :offset    8
-                :type      2
-                :dev       4
-                :qid-type  1
-                :qid-vers  4
-                :qid-path  8
-                :iomode    1
-                :mode      4
-                :atime     4
-                :mtime     4
-                :length    8
-                :count     4})
+(def type-size {:tag      2
+                :oldtag   2
+                :msize    4
+                :size     2
+                :ssize    2
+                :fid      4
+                :afid     4
+                :newfid   4
+                :perm     4
+                :iounit   4
+                :offset   8
+                :type     2
+                :dev      4
+                :qid-type 1
+                :qid-vers 4
+                :qid-path 8
+                :iomode   1
+                :mode     4
+                :atime    4
+                :mtime    4
+                :length   8
+                :count    4})
 
 (def get-operation {:version  #'buffers/get-string
                     :name     #'buffers/get-string
