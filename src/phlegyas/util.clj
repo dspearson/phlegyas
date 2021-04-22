@@ -1,7 +1,6 @@
 (ns phlegyas.util
-  (:require [buddy.core.hash :as hash]
-            [buddy.core.codecs :as codecs])
-  (:import java.nio.ByteBuffer))
+  (:import java.nio.ByteBuffer
+           java.security.MessageDigest))
 
 (defmacro defn-frame-binding
   "A wrapper around defn which wraps the body forms in `with-frame-bindings`,
@@ -121,4 +120,5 @@
 
 (defn sha-str
   [s]
-  (codecs/bytes->hex (hash/sha256 s)))
+  (let [digest (.digest (MessageDigest/getInstance "SHA-256") (.getBytes ^String s "UTF-8"))]
+    (apply str (map (partial format "%02x") digest))))
