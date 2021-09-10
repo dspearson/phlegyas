@@ -1,0 +1,21 @@
+name: build
+on:
+  - push
+  - pull_request
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: lein with-profile +test deps
+    - name: Check Clojure code style
+      run: lein with-profile +test cljfmt check
+    - name: Run the static code analyser
+      run: lein with-profile +test kibit
+    - name: Lint the code with Eastwood
+      run: lein with-profile +test eastwood || true
+    - name: Check the dependencies are up-to-date
+      run: lein with-profile +test ancient || true
+    - name: Run tests
+      run: lein test
