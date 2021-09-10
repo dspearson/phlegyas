@@ -1,4 +1,4 @@
-(ns phlegyas.types
+(ns ^:nodoc phlegyas.types
   (:require [phlegyas.util :refer [reverse-map]]
             [phlegyas.buffers :as buffers]))
 

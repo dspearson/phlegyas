@@ -1,4 +1,5 @@
 (ns phlegyas.buffers
+  "Raw get and put operations for 9P buffers. See INTRO(9P) for more information."
   (:require [phlegyas.util :refer [wrap-buffer]]
             [primitive-math :as math
              :refer [uint->int
@@ -8,28 +9,28 @@
                      ubyte->byte]]))
 
 (defn get-short
-  "Read short from the byte buffer."
+  "Read a short from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (.getShort buffer))
 
 (defn get-int
-  "Read integer from the byte buffer."
+  "Read an integer from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (.getInt buffer))
 
 (defn get-long
-  "Read long from the byte buffer."
+  "Read a long from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (.getLong buffer))
 
 (defn get-string
-  "Read string[s] from the byte buffer."
+  "Read 9P string[s] from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (let [string-size (.getShort buffer)]
     (String. (byte-array (map byte (for [_ (range string-size)] (^Byte .get buffer)))) "UTF-8")))
 
 (defn get-byte
-  "Read byte from the byte buffer."
+  "Read a byte from the byte buffer."
   [^java.nio.ByteBuffer buffer]
   (.get buffer))
 
@@ -67,7 +68,7 @@
     data))
 
 (defn put-short
-  "Wrap short in a byte-array."
+  "Wrap a short in a byte-array."
   [x]
   (let [data                        (byte-array 2)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -75,7 +76,7 @@
     data))
 
 (defn put-int
-  "Wrap int in a byte-array."
+  "Wrap an int in a byte-array."
   [x]
   (let [data                        (byte-array 4)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -83,7 +84,7 @@
     data))
 
 (defn put-long
-  "Wrap long in a byte-array."
+  "Wrap a long in a byte-array."
   [x]
   (let [data                        (byte-array 8)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
@@ -103,7 +104,7 @@
     data))
 
 (defn put-byte
-  "Wrap byte in a byte-array."
+  "Wrap a byte in a byte-array."
   [x]
   (let [data                        (byte-array 1)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
