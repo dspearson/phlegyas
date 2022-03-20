@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.org/dspearson/phlegyas.svg?branch=master)](https://travis-ci.org/dspearson/phlegyas)
 
 ```clj
-[phlegyas "master-SNAPSHOT"]
+[phlegyas "0.1.7"]
 ```
 
 The vast majority of the protocol-level documentation was sourced from the wonderful [Plan 9 from User Space](https://9fans.github.io/plan9port/man/man9/) project.

@@ -7,3 +7,7 @@ docs
 target/**
 .nrepl*
 /docs
+/.clj-kondo/
+/.eastwood
+/.lsp/
+/.rebel_readline_history

@@ -1,8 +1,9 @@
-(defproject phlegyas "master-SNAPSHOT"
+(defproject phlegyas "0.1.7"
   :description "phlegyas: an implementation of 9P2000"
   :url "https://github.com/dspearson/phlegyas"
   :license {:name "ISC Licence"}
   :dependencies [[org.clojure/clojure "1.10.3"]
+                 [org.clojure/clojurescript "1.11.4"]
                  [org.clojure/core.async "1.5.648"]
                  [primitive-math "0.1.6"]
                  [manifold "0.2.3"]
