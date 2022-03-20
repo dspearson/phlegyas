@@ -10,7 +10,7 @@
                  [com.taoensso/timbre "5.1.2"]
                  [org.clojure/core.incubator "0.1.4"]
                  [org.clojure/tools.cli "1.0.206"]]
-  :plugins [[cider/cider-nrepl "0.26.0"]
+  :plugins [[cider/cider-nrepl "0.28.3"]
             [jonase/eastwood "0.4.0"]]
   :main ^:skip-aot phlegyas.core
   :target-path "target/%s"
