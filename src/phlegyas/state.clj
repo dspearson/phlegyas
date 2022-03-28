@@ -2,7 +2,7 @@
   (:require [phlegyas.types :refer [protocol-version max-message-size frame-byte reverse-frame-byte]]
             [phlegyas.vfs :refer [add-fs add-fid add-mapping add-role path->qid fid->role
                                   update-mapping walk-path stat->qid path->stat fid->stat permission-check
-                                  example-function-for-files synthetic-file walk-path
+                                  example-read-write-function-for-files synthetic-file walk-path
                                   stat-type directory-reader next-available-path fetch-data]]
             [phlegyas.util :refer [defn-frame-binding keywordize sha-str conj-val disj-val]]
             [clojure.string :as string]
@@ -227,7 +227,7 @@
 ;; Tcreate:
 ;; rudimentary example of file creation. all new files are initialised with the
 ;; `synthetic-file` function call, which returns a stat record, with a read/write
-;; function set to `example-function-for-files`.
+;; function set to `example-read-write-function-for-files`.
 ;;
 ;; we also need to fetch the stat of the parent directory the file is being
 ;; created in, and need to add the new stat path to its map of children.
@@ -243,7 +243,7 @@
   size[4] Tcreate tag[2] fid[4] name[s] perm[4] mode[1]
   size[4] Rcreate tag[2] qid[13] iounit[4]"
   [frame connection]
-  (let [new-stat    (synthetic-file frame-name :read-fn #'example-function-for-files)
+  (let [new-stat    (synthetic-file frame-name :read-fn #'example-read-write-function-for-files)
         parent-stat (fid->stat current-state frame-fid)
         parent-path (:parent parent-stat)
         file-path   (next-available-path fs)]

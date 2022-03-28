@@ -259,16 +259,18 @@
         stat    (into (fid->stat state fid) data)]
     (update-in state [:fs-map fs-name :files (keywordize (:qid-path stat))] (fn [x] (into x stat)))))
 
-(defn-frame-binding example-read-write
+(defn-frame-binding example-read-write-function-for-files
   [& {:keys [connection frame stat]}]
   (let [count-bytes (count frame-data)
-        contents    (:contents (:metadata stat))]
+        contents    (:contents stat)]
     (if (= frame-ftype :Twrite)
-      (do
-        (swap! state (fn [x] (update-stat x frame-fid {:metadata {:contents (conj contents frame-data)}
-                                                       :length   (+ (:length stat) count-bytes)})))
+      (let [^java.nio.ByteBuffer new-buffer (wrap-buffer (byte-array (+ frame-offset count-bytes)))
+            _ (.put new-buffer contents 0 frame-offset)
+            _ (.put new-buffer frame-data 0 count-bytes)]
+        (swap! state (fn [x] (update-stat x frame-fid {:contents (.array new-buffer)
+                                                       :length   count-bytes})))
         (uint->int count-bytes))
-      (-> contents flatten pack))))
+      contents)))
 
 (defn-frame-binding print-current-time
   [& {:keys [connection frame stat]}]
@@ -291,7 +293,7 @@
         root-path            :0
         another-example-file (synthetic-file "current-time" :read-fn #'print-current-time :metadata {:time 0} :append true)]
     (-> root-fs
-        (insert-file root-path (synthetic-file "write-to-me" :read-fn #'example-read-write))
+        (insert-file root-path (synthetic-file "write-to-me" :read-fn #'example-read-write-function-for-files))
         (insert-file root-path (synthetic-file "example-file" :read-fn #'example-function-for-files))
         (insert-file root-path another-example-file))))
 
