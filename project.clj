@@ -1,4 +1,4 @@
-(defproject phlegyas "0.1.7"
+(defproject phlegyas "0.1.8"
   :description "phlegyas: an implementation of 9P2000"
   :url "https://github.com/dspearson/phlegyas"
   :license {:name "ISC Licence"}
