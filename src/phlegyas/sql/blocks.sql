@@ -3,7 +3,7 @@
 -- :result :raw
 -- :doc Create blocks table
 create table blocks (
-    id integer primary key,
+    id integer,
     node_id integer not null,
     block_index integer not null,
     data blob not null,
