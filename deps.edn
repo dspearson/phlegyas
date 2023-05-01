@@ -3,6 +3,7 @@
   org.clj-commons/primitive-math    {:mvn/version "1.0.1-rc1"}
   org.clojure/tools.cli             {:mvn/version "1.0.214"}
   com.taoensso/timbre               {:mvn/version "6.1.0"}
+  com.fzakaria/slf4j-timbre         {:mvn/version "0.3.21"}
   manifold/manifold                 {:mvn/version "0.4.0"}
   aero/aero                         {:mvn/version "1.1.6"}
   org.clojure/core.incubator        {:mvn/version "0.1.4"}
@@ -13,11 +14,9 @@
   org.xerial/sqlite-jdbc            {:mvn/version "3.41.2.1"}
   aleph/aleph                       {:mvn/version "0.6.1"}
   org.clojure/test.check            {:mvn/version "1.1.1"}}
- :paths ["src" "resources"]
+ :paths ["src" "test" "resources"]
  :aliases
  {:outdated {:deps      {com.github.liquidz/antq {:mvn/version "2.3.1043"}}
              :main-opts ["-m" "antq.core"]}
-  :test     {:extra-paths ["test"]
-             :extra-deps  {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
-             :main-opts   ["-m" "cognitect.test-runner"]
-             :exec-fn     cognitect.test-runner.api/test}}}
+  :test {:main-opts ["-m" "kaocha.runner"]
+         :extra-deps {lambdaisland/kaocha {:mvn/version "1.82.1306"}}}}}

@@ -7,7 +7,9 @@
 
 (def tables
   "Set of tables to load from SQL definition files"
-  #{:filesystems})
+  [:filesystems
+   :nodes
+   :blocks])
 
 (def tables-loaded
   "Set of tables that have successfully had their SQL definitions loaded into HugSQL functions."

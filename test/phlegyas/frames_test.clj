@@ -19,7 +19,7 @@
   [name ns test-fn & [metadata]]
   (intern ns (with-meta (symbol name) (merge metadata {:test #(test-fn)})) (fn [])))
 
-(def vectors (vec (map (fn [^java.io.File x] [(.getName x) (read-vector x)]) (-> "vectors" io/resource .getPath io/file file-seq rest))))
+(def vectors (vec (map (fn [^java.io.File x] [(.getName x) (read-vector x)]) (-> "vectors" io/resource io/file file-seq rest))))
 
 (dotimes [i (count vectors)]
   (let [v (get vectors i)]
