@@ -1,14 +1,16 @@
 (ns phlegyas.client
-  (:require [clojure.set :as sets]
-            [manifold.stream :as s]
-            [manifold.deferred :as d]
-            [clojure.string :as cs]
-            [phlegyas.types :refer [max-message-size protocol-version nofid
-                                    get-operation frame-layouts]]
-            [phlegyas.frames :refer [assemble-packet frame-assembler]]
-            [phlegyas.util :refer [assoc-val dissoc-val disj-val
-                                   keywordize wrap-buffer pack]]
-            [aleph.tcp :as tcp]))
+  (:require
+   [aleph.tcp :as tcp]
+   [clojure.set :as sets]
+   [clojure.string :as cs]
+   [manifold.deferred :as d]
+   [manifold.stream :as s]
+   [phlegyas.frames :refer [assemble-packet frame-assembler]]
+   [phlegyas.types
+    :refer [frame-layouts get-operation max-message-size nofid protocol-version]]
+   [phlegyas.util
+    :refer
+    [assoc-val disj-val dissoc-val keywordize pack wrap-buffer]]))
 
 ;; an example implementation of a client.
 

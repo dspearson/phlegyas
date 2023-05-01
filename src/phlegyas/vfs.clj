@@ -1,13 +1,14 @@
 (ns phlegyas.vfs
-  (:require [clojure.java.io :as io]
-            [phlegyas.types :refer :all]
-            [phlegyas.util :refer :all]
-            [clojure.string :as string]
-            [clojure.set :as sets]
-            [primitive-math :as math
-             :refer [uint->int ulong->long]])
-  (:import [java.nio.file Files LinkOption]
-           [java.nio.file.attribute BasicFileAttributes PosixFilePermission PosixFilePermissions PosixFileAttributes]))
+  (:require
+   [clojure.java.io :as io]
+   [clojure.set :as sets]
+   [clojure.string :as string]
+   [phlegyas.types :refer :all]
+   [phlegyas.util :refer :all]
+   [primitive-math :as math :refer [uint->int ulong->long]])
+  (:import
+   (java.nio.file Files LinkOption)
+   (java.nio.file.attribute PosixFileAttributes)))
 
 ;; an example VFS layer. currently a mess, needs cleanup.
 
@@ -207,12 +208,48 @@
         root-dir  (root-dir 0)]
     (map->filesystem {:files {:0 root-dir} :path-pool path-pool :id (keyword (gensym "filesystem_")) :root-path :0})))
 
+(defn is-directory? [mode]
+  (not (zero? (bit-and mode (:dmdir file-mode)))))
+
+(defn mode->type
+  "Given a mode from Tcreate, return the type to match against
+  the file-mode."
+  [mode]
+  (if (is-directory? mode)
+    :dir
+    :file))
+
+(defn synthetic-directory
+  "Create a synthetic directory stat."
+  [filename & {:keys [owner group mode read-fn write-fn metadata append]
+               :or   {owner "root" group "root" mode 0400 append false}}]
+  (let [size (stat-size filename owner group owner)]
+    (map->stat {:qid-type    (if append (:append qt-mode) ((mode->type mode) qt-mode))
+                :qid-vers    0
+                :permissions {:owner #{:read}, :group #{:read}, :others #{:read}}
+                :type        0
+                :dev         0
+                :mode        mode
+                :atime       0
+                :mtime       0
+                :length      0
+                :name        filename
+                :uid         owner
+                :gid         group
+                :muid        owner
+                :ssize       (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
+                :size        size
+                :children    #{}
+                :metadata    metadata
+                :write-fn    (or write-fn read-fn)
+                :read-fn     read-fn})))
+
 (defn synthetic-file
   "Create a synthetic file stat."
   [filename & {:keys [owner group mode read-fn write-fn metadata append]
                :or   {owner "root" group "root" mode 0400 append false}}]
   (let [size (stat-size filename owner group owner)]
-    (map->stat {:qid-type    (if append (:append qt-mode) (:file qt-mode))
+    (map->stat {:qid-type    (if append (:append qt-mode) ((mode->type mode) qt-mode))
                 :qid-vers    0
                 :permissions {:owner #{:read}, :group #{:read}, :others #{:read}}
                 :type        0

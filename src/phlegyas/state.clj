@@ -1,20 +1,40 @@
 (ns phlegyas.state
-  (:require [phlegyas.types :refer [protocol-version max-message-size frame-byte reverse-frame-byte]]
-            [phlegyas.vfs :refer [add-fs add-fid add-mapping add-role path->qid fid->role
-                                  update-mapping walk-path stat->qid path->stat fid->stat permission-check
-                                  example-read-write-function-for-files synthetic-file walk-path
-                                  stat-type directory-reader next-available-path fetch-data]]
-            [phlegyas.util :refer [defn-frame-binding keywordize sha-str conj-val disj-val]]
-            [clojure.string :as string]
-            [clojure.core.incubator :refer [dissoc-in]]
-            [manifold.stream :as s]
-            [manifold.deferred :as d]))
+  (:require
+   [clojure.core.incubator :refer [dissoc-in]]
+   [clojure.string :as string]
+   [manifold.deferred :as d]
+   [manifold.stream :as s]
+   [phlegyas.types
+    :refer [frame-byte max-message-size protocol-version reverse-frame-byte]]
+   [phlegyas.util
+    :refer [conj-val defn-frame-binding disj-val keywordize sha-str]]
+   [phlegyas.vfs
+    :refer
+    [add-fid
+     add-fs
+     add-mapping
+     add-role
+     directory-reader
+     example-read-write-function-for-files
+     is-directory?
+     fetch-data
+     fid->role
+     fid->stat
+     next-available-path
+     path->qid
+     path->stat
+     permission-check
+     stat->qid
+     stat-type
+     synthetic-file
+     update-mapping
+     walk-path]]))
 
 ;; an example state machine
 
 ;; linting aid.
 (declare state current-state frame-ftype frame-tag frame-qid-type frame-qid-vers frame-qid-path frame-nwqids
-         frame-wnames frame-iounit frame-iomode frame-count frame-ssize frame-size frame-type frame-mode
+         frame-wnames frame-iounit frame-iomode frame-count frame-ssize frame-size frame-ftype frame-perm
          frame-atime frame-mtime frame-length frame-name frame-uname frame-muid frame-data frame-offset
          frame-fid frame-ename frame-version frame-afid frame-aname frame-oldtag frame-newfid frame-msize
          mapping fs-name fs fsid path)
@@ -243,7 +263,9 @@
   size[4] Tcreate tag[2] fid[4] name[s] perm[4] mode[1]
   size[4] Rcreate tag[2] qid[13] iounit[4]"
   [frame connection]
-  (let [new-stat    (synthetic-file frame-name :read-fn #'example-read-write-function-for-files)
+  (let [_ (println "Tcreate frame:" frame)
+        directory? (is-directory? frame-perm)
+        new-stat    (synthetic-file frame-name :mode frame-perm :read-fn #'example-read-write-function-for-files)
         parent-stat (fid->stat current-state frame-fid)
         parent-path (:parent parent-stat)
         file-path   (next-available-path fs)]

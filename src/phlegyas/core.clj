@@ -1,7 +1,8 @@
 (ns phlegyas.core
-  (:require [clojure.tools.cli :refer [parse-opts]]
-            [phlegyas.server :refer [start-server]])
-  (:gen-class))
+  (:gen-class)
+  (:require
+   [clojure.tools.cli :refer [parse-opts]]
+   [phlegyas.server :refer [start-server]]))
 
 (def cli-options
   [["-p" "--port PORT" "Port number"

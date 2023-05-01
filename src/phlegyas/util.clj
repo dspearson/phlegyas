@@ -1,7 +1,14 @@
 (ns phlegyas.util
-  (:require [clojure.string :refer [join]])
-  (:import java.nio.ByteBuffer
-           java.security.MessageDigest))
+  (:require
+   [clojure.string :refer [join]])
+  (:import
+   (java.nio ByteBuffer)
+   (java.security MessageDigest)))
+
+(defn octal->int
+  "Convert an octal string to an integer."
+  [s]
+  (Integer/parseInt s 8))
 
 (defmacro defn-frame-binding
   "A wrapper around defn which wraps the body forms in `with-frame-bindings`,
@@ -32,7 +39,7 @@
           ~'frame-ssize    (:ssize frame#)
           ~'frame-size     (:size frame#)
           ~'frame-type     (:type frame#)
-          ~'frame-mode     (:mode frame#)
+          ~'frame-perm     (:perm frame#)
           ~'frame-atime    (:atime frame#)
           ~'frame-mtime    (:mtime frame#)
           ~'frame-length   (:length frame#)

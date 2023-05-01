@@ -1,9 +1,10 @@
 (ns phlegyas.server
-  (:require [phlegyas.frames :refer [frame-assembler assemble-packet]]
-            [phlegyas.state :refer [state-handler consume]]
-            [phlegyas.vfs :refer [example-filesystem!]]
-            [manifold.stream :as s]
-            [aleph.tcp :as tcp]))
+  (:require
+   [aleph.tcp :as tcp]
+   [manifold.stream :as s]
+   [phlegyas.frames :refer [assemble-packet frame-assembler]]
+   [phlegyas.state :refer [consume state-handler]]
+   [phlegyas.vfs :refer [example-filesystem!]]))
 
 (defn server!
   [in out & {:keys [root-filesystem-constructor]}]

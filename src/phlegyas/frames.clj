@@ -1,14 +1,14 @@
 (ns phlegyas.frames
-  (:require [phlegyas.types :refer [reverse-frame-byte
-                                    put-operation
-                                    get-operation
-                                    frame-layouts
-                                    frame-byte]]
-            [phlegyas.util :refer [wrap-buffer
-                                   pack
-                                   keywordize]]
-            [clojure.core.async :refer [thread]]
-            [manifold.stream :as s]))
+  (:require
+   [clojure.core.async :refer [thread]]
+   [manifold.stream :as s]
+   [phlegyas.types
+    :refer [frame-byte
+            frame-layouts
+            get-operation
+            put-operation
+            reverse-frame-byte]]
+   [phlegyas.util :refer [keywordize pack wrap-buffer]]))
 
 (defmacro frame-length
   "Check reported frame length."
@@ -48,6 +48,7 @@
   [frame]
   (let [ftype  (:frame frame)
         layout (get frame-layouts ftype)]
+    (println "Frame to assemble:" frame)
     (-> (for [typ layout] ((get put-operation typ) (get frame typ))) flatten (assemble ftype) pack)))
 
 (defn dispatch-frame

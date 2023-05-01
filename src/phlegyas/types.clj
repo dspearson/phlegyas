@@ -1,6 +1,7 @@
 (ns ^:nodoc phlegyas.types
-  (:require [phlegyas.util :refer [reverse-map]]
-            [phlegyas.buffers :as buffers]))
+  (:require
+   [phlegyas.buffers :as buffers]
+   [phlegyas.util :refer [reverse-map]]))
 
 ; protocol defaults
 (def protocol-version   "9P2000")
@@ -18,11 +19,11 @@
                   :orclose 0x40
                   :oexcl   0x1000})
 
-(def role-access {:oread  #{:read       }
-                  :owrite #{:write      }
+(def role-access {:oread  #{:read}
+                  :owrite #{:write}
                   :ordrw  #{:read :write}
-                  :oexec  #{:execute    }
-                  :otrunc #{:write      }})
+                  :oexec  #{:execute}
+                  :otrunc #{:write}})
 
 (def permission-mode {:ixoth 0001
                       :iwoth 0002

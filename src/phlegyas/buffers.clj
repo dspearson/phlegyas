@@ -1,12 +1,8 @@
 (ns phlegyas.buffers
   "Raw get and put operations for 9P buffers. See INTRO(9P) for more information."
-  (:require [phlegyas.util :refer [wrap-buffer]]
-            [primitive-math :as math
-             :refer [uint->int
-                     short->ushort
-                     ushort->short
-                     ulong->long
-                     ubyte->byte]]))
+  (:require
+   [phlegyas.util :refer [wrap-buffer]]
+   [primitive-math :refer [short->ushort ubyte->byte uint->int ulong->long ushort->short]]))
 
 (defn get-short
   "Read a short from the byte buffer."
