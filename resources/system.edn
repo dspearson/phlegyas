@@ -1,0 +1,5 @@
+{:phlegyas/config   {}
+ :phlegyas/server   {:database #ig/ref :phlegyas/database
+                     :config   #ig/ref :phlegyas/config}
+ :phlegyas/nrepl    {:config #ig/ref :phlegyas/config}
+ :phlegyas/database {:config #ig/ref :phlegyas/config}}

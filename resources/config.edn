@@ -1,0 +1,7 @@
+{:server   {:port     #long #or [#env PHLEGYAS_PORT 10001]
+            :enabled? #or [#env PHLEGYAS_LISTEN true]}
+ :nrepl    {:enabled? #or [#env PHLEGYAS_NREPL_LISTEN false]
+            :port     #long #or [#env PHLEGYAS_NREPL_PORT 7890]}
+ :database {:classname   "org.sqlite.JDBC"
+            :subprotocol "sqlite"
+            :subname     #env PHLEGYAS_DATABASE}}

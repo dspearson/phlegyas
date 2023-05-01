@@ -1,6 +1,7 @@
 (ns phlegyas.util
   (:require
-   [clojure.string :refer [join]])
+   [clojure.string :refer [join]]
+   [clojure.java.io :as io])
   (:import
    (java.nio ByteBuffer)
    (java.security MessageDigest)))
@@ -9,6 +10,13 @@
   "Convert an octal string to an integer."
   [s]
   (Integer/parseInt s 8))
+
+(defn str->file
+  [filename]
+  (when-let [f (io/file filename)]
+    (when (and (.exists f)
+               (.isFile f))
+      f)))
 
 (defmacro defn-frame-binding
   "A wrapper around defn which wraps the body forms in `with-frame-bindings`,
