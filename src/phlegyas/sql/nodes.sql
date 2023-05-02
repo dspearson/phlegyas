@@ -8,3 +8,7 @@ create table nodes (
     name text not null,
     handler text
 );
+
+-- :name insert-node :i!
+-- :doc Inserts node
+insert into nodes (type, name, handler) values (:type, :name, :handler);

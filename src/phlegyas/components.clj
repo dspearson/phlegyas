@@ -4,12 +4,11 @@
             [nrepl.server :as nrepl]
             [clojure.java.io :as io]
             [phlegyas.server :refer [start-server]]
+            [phlegyas.system :refer [system]]
             [phlegyas.util :refer [str->file parse-int]]
             [phlegyas.db :refer [initialise-database]]
             [taoensso.timbre :as timbre
              :refer [info debug error]]))
-
-(defonce system (atom nil))
 
 (defn get-config
   []
@@ -44,7 +43,7 @@
   (let [{:keys [enabled? port]} (:server config)]
     (when enabled?
       (info "Starting 9P server, port:" port)
-      (start-server port))))
+      (start-server {:port port}))))
 
 (defmethod halt-key! :phlegyas/server
   [_ server]

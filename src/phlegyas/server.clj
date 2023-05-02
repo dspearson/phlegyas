@@ -33,9 +33,7 @@
     (s/connect out s)))
 
 (defn start-server
-  ([]
-   (start-server 10001))
-  ([port]
-   (start-server port true))
-  ([port join?]
-   (tcp/start-server tcp-route {:port port :join? join?})))
+  [{:keys [port join?]
+    :or   {port 10001
+           join? false}}]
+  (tcp/start-server tcp-route {:port port :join? join?}))
