@@ -4,5 +4,5 @@
    [phlegyas.components :refer [start-system!]]))
 
 (defn -main
-  [& args]
+  [& _args]
   (start-system!))

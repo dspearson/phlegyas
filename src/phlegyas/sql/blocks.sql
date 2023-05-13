@@ -3,10 +3,9 @@
 -- :result :raw
 -- :doc Create blocks table
 create table blocks (
-    id integer,
-    node_id integer not null,
+    uuid blob primary key,
+    node_id blob not null,
     block_index integer not null,
     data blob not null,
-    primary key (node_id, block_index),
-    foreign key (node_id) references nodes (id)
+    foreign key (node_id) references nodes (uuid)
 );

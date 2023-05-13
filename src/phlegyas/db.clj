@@ -29,3 +29,14 @@
     ;; (create-all-indexes database-spec)
     (debug "Database created.")
     (catch Exception e (error "Unable to create database:" e))))
+
+(defn delete-and-recreate-database
+  "Completely remove the existing database file, and recreate the structure."
+  [database-spec]
+  (let [database-file (file (:subname database-spec))]
+    (when (.exists database-file)
+      (try
+        (.delete database-file)
+        (debug "Database deleted.")
+        (catch Exception e (error "Unable to delete databsae: " e))))
+    (initialise-database database-spec)))

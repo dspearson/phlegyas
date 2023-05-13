@@ -3,16 +3,16 @@
 -- :result :raw
 -- :doc Create filesystems table
 create table filesystems (
-       id integer primary key,
+       uuid blob primary key,
        name text not null,
        block_size integer not null,
        root_node integer not null,
-       foreign key (root_node) references nodes (id)
+       foreign key (root_node) references nodes (uuid)
 );
 
 -- :name insert-filesystem :i!
 -- :doc Inserts filesystem into database
-insert into filesystems (name, block_size) values (:name, :block-size);
+insert into filesystems (name, block_size, root_node) values (:name, :block-size, :root-node);
 
 -- :name get-filesystem :?
 -- :result :1

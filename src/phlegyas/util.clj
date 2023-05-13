@@ -4,7 +4,16 @@
    [clojure.java.io :as io])
   (:import
    (java.nio ByteBuffer)
-   (java.security MessageDigest)))
+   (java.security MessageDigest)
+   (java.util UUID)))
+
+(defn uuid!
+  []
+  (let [uuid (UUID/randomUUID)
+        buf (ByteBuffer/allocate 16)]
+    (.putLong buf (.getMostSignificantBits uuid))
+    (.putLong buf (.getLeastSignificantBits uuid))
+    (.array buf)))
 
 (defn octal->int
   "Convert an octal string to an integer."
