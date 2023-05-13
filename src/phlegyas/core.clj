@@ -1,7 +1,8 @@
 (ns phlegyas.core
   (:gen-class)
   (:require
-   [phlegyas.components :refer [start-system!]]))
+   [phlegyas.components :refer [start-system!
+                                stop-system!]]))
 
 (defn -main
   [& _args]
