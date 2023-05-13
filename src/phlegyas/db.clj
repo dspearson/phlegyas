@@ -33,7 +33,7 @@
 (defn delete-and-recreate-database
   "Completely remove the existing database file, and recreate the structure."
   [database-spec]
-  (let [database-file (file (:subname database-spec))]
+  (let [database-file (file (:dbname database-spec))]
     (when (.exists database-file)
       (try
         (.delete database-file)

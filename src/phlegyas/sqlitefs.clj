@@ -17,15 +17,27 @@
      :handler handler
      :type "directory"}))
 
+(defn filesystem!
+  "Creates a filesystem"
+  [{:keys [name bsize rnode]
+    :or {bsize 8192}}]
+  (let [uuid (uuid!)]
+    {:uuid uuid
+     :name name
+     :bsize bsize
+     :rnode rnode}))
+
 (defn create-filesystem
   "Create a 9P filesystem, stores it in the database"
-  [system fs-name]
-  (let [root-node (directory! {:name "/"})]
+  [system fs-name & {:keys [bsize] :or {bsize 8192}}]
+  (let [root-node (directory! {:name "/"})
+        fs        (filesystem! {:name fs-name :bsize bsize :rnode (:uuid root-node)})]
     (info "System db:" (:phlegyas/database @system))
     (jdbc/with-transaction [tx (:ds (:phlegyas/database @system))]
       (info "Inserting:" root-node)
       (db/insert-node tx root-node)
-      (db/insert-filesystem tx {:name fs-name :root-node (:uuid root-node)}))))
+      (db/insert-filesystem tx fs))
+    (info "OK")))
 
 (defn get-filesystem
   "Get a filesystem from the database"
