@@ -37,15 +37,28 @@
       (info "Inserting:" root-node)
       (db/insert-node tx root-node)
       (db/insert-filesystem tx fs))
-    (info "OK")))
+    fs))
 
 (defn get-filesystem
   "Get a filesystem from the database"
   [system fs-name]
   (jdbc/with-transaction [tx (:phlegyas/database @system)]
-    (let [fs        (db/get-filesystem tx fs-name)
-          root-node (db/get-node tx (:root fs))]
+    (let [fs        (db/get-filesystem tx {:name fs-name})
+          root-node (db/get-node tx {:uuid (:rnode fs)})]
       (assoc fs :root root-node))))
+
+(defn add-directory
+  "Add a directory to the filesystem"
+  [system {:keys [uuid] :as parent} dir-name]
+  (let [directory (directory! {:name dir-name :parent uuid})]
+      (jdbc/with-transaction [tx (:phlegyas/database @system)]
+        (db/insert-node tx directory))))
+
+;; (defn insert-block
+;;   "Insert a block into the database"
+;;   [system block]
+;;   (jdbc/with-transaction [tx (:phlegyas/database @system)]
+;;     (db/insert-block tx block)))
 
 (defn calculate-block-info
   "Given an offset and a block size, calculate the block index and the

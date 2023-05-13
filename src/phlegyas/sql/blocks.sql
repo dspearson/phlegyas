@@ -6,6 +6,6 @@ create table blocks (
     uuid blob primary key,
     node blob not null,
     idx integer not null,
-    data blob not null,
+    data blob,
     foreign key (uuid) references nodes (uuid)
 );

@@ -7,7 +7,8 @@ create table nodes (
     type integer not null,
     name text not null,
     parent blob not null,
-    handler text not null
+    handler text not null,
+    unique(parent, name)
 );
 
 -- :name insert-node :i!
