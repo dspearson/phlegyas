@@ -4,8 +4,8 @@
 -- :doc Create blocks table
 create table blocks (
     uuid blob primary key,
-    node_id blob not null,
-    block_index integer not null,
+    node blob not null,
+    idx integer not null,
     data blob not null,
-    foreign key (node_id) references nodes (uuid)
+    foreign key (uuid) references nodes (uuid)
 );

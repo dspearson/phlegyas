@@ -5,17 +5,16 @@
 create table filesystems (
        uuid blob primary key,
        name text not null,
-       block_size integer not null,
-       root_node integer not null,
-       foreign key (root_node) references nodes (uuid)
+       bsize integer not null,
+       rnode integer not null,
+       foreign key (rnode) references nodes (uuid)
 );
 
 -- :name insert-filesystem :i!
 -- :doc Inserts filesystem into database
-insert into filesystems (name, block_size, root_node) values (:name, :block-size, :root-node);
+insert into filesystems (uuid, name, block_size, root_node) values (:uuid, :name, :block-size, :root-node);
 
 -- :name get-filesystem :?
 -- :result :1
 -- :doc Get filesystem by name
-
-select name, block_size from filesystems inner join nodes
+select uuid, name, block_size, root_node from filesystems where name = :name;
