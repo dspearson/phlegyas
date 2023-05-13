@@ -22,7 +22,7 @@
   [system fs-name]
   (let [root-node (directory! {:name "/"})]
     (info "System db:" (:phlegyas/database @system))
-    (jdbc/with-transaction [tx (:phlegyas/database @system)]
+    (jdbc/with-transaction [tx (:ds (:phlegyas/database @system))]
       (info "Inserting:" root-node)
       (db/insert-node tx root-node)
       (db/insert-filesystem tx {:name fs-name :root-node (:uuid root-node)}))))

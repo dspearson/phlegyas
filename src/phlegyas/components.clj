@@ -7,6 +7,10 @@
             [phlegyas.system :refer [system]]
             [phlegyas.util :refer [str->file parse-int]]
             [phlegyas.db :refer [initialise-database]]
+            [next.jdbc :as jdbc]
+            [hugsql.core :refer [set-adapter!]]
+            [hugsql.adapter.next-jdbc :refer [hugsql-adapter-next-jdbc]]
+            [next.jdbc.result-set :refer [as-unqualified-maps]]
             [taoensso.timbre :as timbre
              :refer [info debug error]]))
 
@@ -53,10 +57,11 @@
 (defmethod init-key :phlegyas/database
   [_ {:keys [config]}]
   (let [{:keys [dbname] :as db-config} (:database config)]
+    (set-adapter! (hugsql-adapter-next-jdbc {:builder-fn as-unqualified-maps}))
     (when-not (str->file dbname)
       (info "Creating database:" dbname)
       (initialise-database db-config))
-    db-config))
+    (assoc db-config :ds (jdbc/get-datasource db-config))))
 
 (defmethod halt-key! :phlegyas/database
   [_ database])
