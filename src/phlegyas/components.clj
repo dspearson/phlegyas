@@ -52,9 +52,9 @@
 
 (defmethod init-key :phlegyas/database
   [_ {:keys [config]}]
-  (let [{:keys [dbpath] :as db-config} (:database config)]
-    (when-not (str->file dbpath)
-      (info "Creating database:" dbpath)
+  (let [{:keys [dbname] :as db-config} (:database config)]
+    (when-not (str->file dbname)
+      (info "Creating database:" dbname)
       (initialise-database db-config))
     db-config))
 
