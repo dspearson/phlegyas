@@ -7,10 +7,15 @@
    (java.security MessageDigest)
    (java.util UUID)))
 
+(defn epoch!
+  []
+  (int (/ (System/currentTimeMillis) 1000)))
+
 (defn uuid!
   []
   (let [uuid (UUID/randomUUID)
-        buf (ByteBuffer/allocate 16)]
+        buf (-> (java.nio.ByteBuffer/allocate 16)
+                (.order java.nio.ByteOrder/LITTLE_ENDIAN))]
     (.putLong buf (.getMostSignificantBits uuid))
     (.putLong buf (.getLeastSignificantBits uuid))
     (.array buf)))

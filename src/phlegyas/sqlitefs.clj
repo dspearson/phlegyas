@@ -51,8 +51,11 @@
   "Add a directory to the filesystem"
   [system {:keys [uuid] :as parent} dir-name]
   (let [directory (directory! {:name dir-name :parent uuid})]
-      (jdbc/with-transaction [tx (:phlegyas/database @system)]
-        (db/insert-node tx directory))))
+    (when-not
+        (empty?
+          (jdbc/with-transaction [tx (:phlegyas/database @system)]
+            (db/insert-node tx directory)))
+      directory)))
 
 ;; (defn insert-block
 ;;   "Insert a block into the database"
