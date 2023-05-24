@@ -1,4 +1,4 @@
-{:phlegyas/config   "config.edn"
+{:phlegyas/config   "test_config.edn"
  :phlegyas/server   {:database #ig/ref :phlegyas/database
                      :config   #ig/ref :phlegyas/config}
  :phlegyas/nrepl    {:config #ig/ref :phlegyas/config}

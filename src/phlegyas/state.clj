@@ -34,7 +34,7 @@
 
 ;; linting aid.
 (declare state current-state frame-ftype frame-tag frame-qid-type frame-qid-vers frame-qid-path frame-nwqids
-         frame-wnames frame-iounit frame-iomode frame-count frame-ssize frame-size frame-ftype frame-perm
+         frame-wnames frame-iounit frame-iomode frame-count frame-size frame-ftype frame-perm
          frame-atime frame-mtime frame-length frame-name frame-uname frame-muid frame-data frame-offset
          frame-fid frame-ename frame-version frame-afid frame-aname frame-oldtag frame-newfid frame-msize
          mapping fs-name fs fsid path)

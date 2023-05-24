@@ -7,7 +7,7 @@ create table filesystems (
        name text not null unique,
        bsize integer not null,
        rnode integer not null,
-       foreign key (rnode) references nodes (uuid)
+       foreign key (rnode) references nodes (path)
 );
 
 -- :name insert-filesystem :i!

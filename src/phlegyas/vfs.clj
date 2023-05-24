@@ -156,7 +156,6 @@
                 :uid           uid
                 :gid           gid
                 :muid          muid
-                :ssize         (+ size 2) ;; Rstat has a duplicate stat field, so we add this to aid with serialisation
                 :size          size
                 :children      {}
                 :parent        (if (nil? parent) (keywordize path) parent)

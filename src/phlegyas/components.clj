@@ -15,14 +15,14 @@
              :refer [info debug error]]))
 
 (defn get-config
-  []
-  (if-let [config (str->file (System/getenv "PHLEGYAS_CONFIG"))]
-    config
-    (io/resource "config.edn")))
+  [config]
+  (if-let [env-config (str->file (System/getenv "PHLEGYAS_CONFIG"))]
+    env-config
+    (io/resource config)))
 
 (defmethod init-key :phlegyas/config
-  [_ _]
-  (let [config (get-config)]
+  [_ config]
+  (let [config (get-config config)]
     (info "Reading configuration:" (.toString config))
     (aero/read-config config)))
 
@@ -68,15 +68,16 @@
 
 (defn start-system!
   ([]
-   (start-system! "system.edn"))
-  ([config]
-   (info "System starting...")
-   (reset! system (-> config
-                      io/resource
-                      slurp
-                      integrant/read-string
-                      prep
-                      init))))
+   (start-system! system "system.edn"))
+  ([system config]
+   (when-not @system
+     (info "System starting...")
+     (reset! system (-> config
+                        io/resource
+                        slurp
+                        integrant/read-string
+                        prep
+                        init)))))
 
 (defn stop-system!
   ([]

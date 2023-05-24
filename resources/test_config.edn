@@ -1,0 +1,5 @@
+{:server   {:port     #long 10002
+            :enabled? true}
+ :nrepl    {:enabled? false}
+ :database {:dbtype "sqlite"
+            :dbname #env PHLEGYAS_TEST_DATABASE}}

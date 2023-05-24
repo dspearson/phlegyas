@@ -20,6 +20,17 @@
     (.putLong buf (.getLeastSignificantBits uuid))
     (.array buf)))
 
+(defn uuid=
+  ([x] true)
+  ([x y]
+   (java.util.Arrays/equals x y))
+  ([x y & more]
+   (if (uuid= x y)
+     (if (next more)
+       (recur y (first more) (next more))
+       (uuid= y (first more)))
+     false)))
+
 (defn octal->int
   "Convert an octal string to an integer."
   [s]
@@ -58,7 +69,6 @@
           ~'frame-iounit   (:iounit frame#)
           ~'frame-iomode   (:iomode frame#)
           ~'frame-count    (:count frame#)
-          ~'frame-ssize    (:ssize frame#)
           ~'frame-size     (:size frame#)
           ~'frame-type     (:type frame#)
           ~'frame-perm     (:perm frame#)
