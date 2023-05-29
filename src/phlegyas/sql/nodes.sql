@@ -5,6 +5,7 @@
 create table nodes (
     parent blob not null,
     handler text not null,
+    dev integer not null default 0,
     type integer not null,
     vers integer not null,
     path blob primary key,
@@ -23,6 +24,7 @@ create table nodes (
 -- :doc Inserts node
 insert into nodes (parent,
                    handler,
+                   dev,
                    type,
                    vers,
                    path,
@@ -36,6 +38,7 @@ insert into nodes (parent,
                    muid)
 values (:parent,
         :handler,
+        :dev,
         :qid-type,
         :qid-vers,
         :qid-path,

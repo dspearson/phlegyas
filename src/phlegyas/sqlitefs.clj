@@ -17,6 +17,7 @@
   (let [uuid  (uuid!)
         birth (epoch!)]
     {:qid-path uuid
+     :dev      0
      :handler  handler
      :qid-type (:dir qt-mode)
      :qid-vers 0
@@ -110,7 +111,6 @@
            last-path       nil
            data-size       0
            paths-remaining (get-directory-contents system directory)]
-      (println "iterating")
       (cond
         (> data-size max-size)
         [(-> accum rest flatten pack)
@@ -124,14 +124,8 @@
 
         :else
         (let [stat (first paths-remaining)
-              _ (println "Keys:" (keys stat))
-              data (for [typ layout] ((get put-operation typ) (get stat typ)))]
-          (println "In loop")
-          (println "First stat:" stat)
-          (println "Type of data:" (type data))
-          (clojure.pprint/pprint data)
-          (println "Count:" (count data))
-          (println "ok")
+              data (for [typ layout]
+                     ((get put-operation typ) (get stat typ)))]
           (recur (conj accum data)
                  (:qid-path stat)
                  (+ data-size (count data))

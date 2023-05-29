@@ -34,8 +34,7 @@
           directory-contents (vfs/get-directory-contents system root-directory)
           _                  (println (first directory-contents))
           dir                (vfs/directory-reader system root-directory 8192)]
-      ;; FIXME: ^ dir read fails, run in non test context to debug
-
+      (println "Dir:" dir)
       (testing "Directory is successfully inserted and retrievable"
         (is (uuid= (:path sub-directory-1)
                    (:path fetched-directory))))
