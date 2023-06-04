@@ -33,9 +33,7 @@
           fetched-directory (vfs/get-node system sub-directory-1)
           dir-contents      (vfs/get-directory-contents system root-directory)
           subdir-contents   (vfs/get-directory-contents system root-directory)
-          _                 (println (first dir-contents))
           dir               (vfs/directory-reader system root-directory 8192)]
-      (println "Dir:" dir)
       (testing "Directory is successfully inserted and retrievable"
         (is (uuid= (:qid-path sub-directory-1)
                    (:qid-path fetched-directory))))
