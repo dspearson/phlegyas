@@ -2,6 +2,8 @@
   (:require
    [clojure.core.async :refer [thread]]
    [manifold.stream :as s]
+   [taoensso.timbre :as timbre
+    :refer [info debug error]]
    [phlegyas.types
     :refer [frame-byte
             frame-layouts
@@ -30,8 +32,10 @@
   (let [^java.nio.ByteBuffer frame (wrap-buffer packet)
         _                          (frame-length frame)
         ftype                      (frame-type frame)
-        layout                     (get frame-layouts ftype)]
-    (into {:frame ftype} (for [field layout] {field ((get get-operation field) frame)}))))
+        layout                     (get frame-layouts ftype)
+        frame                      (into {:frame ftype} (map (fn [field] {field ((field get-operation) frame)}) layout))]
+    (debug "Disassembled packet" frame)
+    frame))
 
 (defn assemble
   "Takes in a frame and frame type, calculates the final size of the frame
@@ -39,17 +43,20 @@
   from the `phlegyas.types` namespace, and adding the size and type to the sequence."
   [frame ftype]
   (let [frame-size (+ 5 (apply + (map count frame)))
-        type-bytes (get frame-byte ftype)]
-    (cons ((:fsize put-operation) frame-size) (cons ((:ftype put-operation) type-bytes) frame))))
+        type-bytes (get frame-byte ftype)
+        fsize-op   ((:fsize put-operation) frame-size)
+        ftype-op   ((:ftype put-operation) type-bytes)]
+    (into [fsize-op ftype-op] frame)))
 
 (defn assemble-packet
   "Takes in a map representing a frame (see `frame-layouts` in the `phlegyas.types` namespace, and
   intro(9P) manual), and encodes it."
   [frame]
   (let [ftype  (:frame frame)
-        layout (get frame-layouts ftype)]
-    (println "Frame to assemble:" frame)
-    (-> (for [typ layout] ((get put-operation typ) (get frame typ))) flatten (assemble ftype) pack)))
+        layout (get frame-layouts ftype)
+        packet (-> (map #((% put-operation) (% frame)) layout) flatten (assemble ftype) pack)]
+    (debug "Assembled packet" (into [] packet))
+    packet))
 
 (defn dispatch-frame
   "Cuts frames along their boundaries, returning any partially assembled packets back to
@@ -58,11 +65,12 @@
   (loop [x packet]
     (if (< (count x) 4)
       (vec x)
-      (let [l (-> (subvec x 0 4) byte-array ^java.nio.ByteBuffer wrap-buffer frame-length)]
+      (let [header (subvec x 0 4)
+            l      (-> header byte-array ^java.nio.ByteBuffer wrap-buffer frame-length)]
         (if (< (count x) l)
           (vec x)
-          (do
-            (s/put! out (-> x (subvec 0 l) byte-array disassemble-packet))
+          (let [frame (subvec x 0 l)]
+            (s/put! out (-> frame byte-array disassemble-packet))
             (recur (vec (subvec x l)))))))))
 
 (defn frame-assembler

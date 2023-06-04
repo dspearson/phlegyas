@@ -58,7 +58,7 @@
   [system fs-name]
   (jdbc/with-transaction [tx (:phlegyas/database @system)]
     (let [fs        (db/get-filesystem tx {:name fs-name})
-          root-node (db/get-node tx {:path (:rnode fs)})]
+          root-node (db/get-node tx {:qid-path (:rnode fs)})]
       (assoc fs :root root-node))))
 
 (defn add-directory
@@ -124,23 +124,15 @@
 
         :else
         (let [stat (first paths-remaining)
-              data (for [typ layout]
-                     ((get put-operation typ) (get stat typ)))]
+              data (map #((% put-operation) (% stat)) layout)]
           (recur (conj accum data)
                  (:qid-path stat)
                  (+ data-size (count data))
                  (rest paths-remaining)))))))
 
-;; (defn insert-block
-;;   Insert a block into the database"
-;;   [system block]
-;;   (jdbc/with-transaction [tx (:phlegyas/database @system)]
-;;     (db/insert-block tx block))
-
 (defn calculate-block-info
   "Given an offset and a block size, calculate the block index and the
    position in the block."
   [offset block-size]
-  (let [block-index (quot offset block-size)
-        position-in-block (mod offset block-size)]
-    {:block-index block-index, :position-in-block position-in-block}))
+  {:block-index       (quot offset block-size)
+   :position-in-block (mod offset block-size)})

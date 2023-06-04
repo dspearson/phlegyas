@@ -48,51 +48,51 @@
   which is an anaphoric macro that creates a lexical environment and defines
   a number of useful variables for us."
   ([name args body]
-   `(defn ~name ~args (do (with-frame-bindings ~body))))
+   `(defn ~name ~args (with-frame-bindings ~body)))
   ([name docstr args body]
-   `(defn ~name ~docstr ~args (do (with-frame-bindings ~body)))))
+   `(defn ~name ~docstr ~args (with-frame-bindings ~body))))
 
 (defmacro with-frame-bindings
   ([body]
    `(with-frame-bindings ~'frame ~body))
   ([frame body]
-   `(let [frame#           ~frame
-          ~'state          (:state ~'connection)
-          ~'current-state  (if (instance? clojure.lang.Atom ~'state) ~'@state {})
-          ~'frame-ftype    (:frame frame#)
-          ~'frame-tag      (:tag frame#)
-          ~'frame-qid-type (:qid-type frame#)
-          ~'frame-qid-vers (:qid-vers frame#)
-          ~'frame-qid-path (:qid-path frame#)
-          ~'frame-nwqids   (:nwqids frame#)
-          ~'frame-wnames   (:wnames frame#)
-          ~'frame-iounit   (:iounit frame#)
-          ~'frame-iomode   (:iomode frame#)
-          ~'frame-count    (:count frame#)
-          ~'frame-size     (:size frame#)
-          ~'frame-type     (:type frame#)
-          ~'frame-perm     (:perm frame#)
-          ~'frame-atime    (:atime frame#)
-          ~'frame-mtime    (:mtime frame#)
-          ~'frame-length   (:length frame#)
-          ~'frame-name     (:name frame#)
-          ~'frame-uname    (:uname frame#)
-          ~'frame-muid     (:muid frame#)
-          ~'frame-data     (:data frame#)
-          ~'frame-offset   (:offset frame#)
-          ~'frame-fid      (:fid frame#)
-          ~'frame-ename    (:ename frame#)
-          ~'frame-version  (:version frame#)
-          ~'frame-afid     (:afid frame#)
-          ~'frame-aname    (:aname frame#)
-          ~'frame-oldtag   (:oldtag frame#)
-          ~'frame-newfid   (:newfid frame#)
-          ~'frame-msize    (:msize frame#)
-          ~'mapping        (or (get (:mapping ~'current-state) (keywordize ~'frame-fid)) {})
-          ~'fs-name        (:filesystem ~'mapping)
-          ~'fs             (get (:fs-map ~'current-state) ~'fs-name)
-          ~'fsid           (:id ~'fs)
-          ~'path           (:path ~'mapping)]
+   `(let [frame#                    ~frame
+          {~'state :state}          ~'connection
+          ~'current-state           (if (instance? clojure.lang.Atom ~'state) ~'@state {})
+          {~'frame-ftype    :frame
+           ~'frame-tag      :tag
+           ~'frame-qid-type :qid-type
+           ~'frame-qid-vers :qid-vers
+           ~'frame-qid-path :qid-path
+           ~'frame-nwqids   :nwqids
+           ~'frame-wnames   :wnames
+           ~'frame-iounit   :iounit
+           ~'frame-iomode   :iomode
+           ~'frame-count    :count
+           ~'frame-size     :size
+           ~'frame-type     :type
+           ~'frame-perm     :perm
+           ~'frame-atime    :atime
+           ~'frame-mtime    :mtime
+           ~'frame-length   :length
+           ~'frame-name     :name
+           ~'frame-uname    :uname
+           ~'frame-muid     :muid
+           ~'frame-data     :data
+           ~'frame-offset   :offset
+           ~'frame-fid      :fid
+           ~'frame-ename    :ename
+           ~'frame-version  :version
+           ~'frame-afid     :afid
+           ~'frame-aname    :aname
+           ~'frame-oldtag   :oldtag
+           ~'frame-newfid   :newfid
+           ~'frame-msize    :msize} frame#
+          ~'mapping                 (or ((keywordize ~'frame-fid) (:mapping ~'current-state)) {})
+          {~'fs-name :filesystem}   ~'mapping
+          ~'fs                      ((:fs-map ~'current-state) ~'fs-name)
+          {~'fsid :id}              ~'fs
+          {~'path :path}            ~'mapping]
       (~@body))))
 
 (defmacro with-server
@@ -146,12 +146,12 @@
 (defmacro reverse-map
   "Reverses a map, keywordizing the value."
   [table]
-  `(into {} (for [[k# v#] ~table] [(keywordize v#) k#])))
+  `(into {} (map (fn [[k# v#]] [(keywordize v#) k#]) ~table)))
 
 (defn sizeof-string
   "Count the number of bytes in a string."
   [s]
-  (count (#^bytes .getBytes ^String s "UTF-8")))
+  (count (.getBytes s "UTF-8")))
 
 (defn parse-int
   "Coerce a string to integer."

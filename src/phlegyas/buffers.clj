@@ -9,6 +9,12 @@
   [^java.nio.ByteBuffer buffer]
   (.getShort buffer))
 
+(defn get-size
+  "Read a short from the byte buffer."
+  [^java.nio.ByteBuffer buffer]
+  (.getShort buffer)
+  (.getShort buffer))
+
 (defn get-int
   "Read an integer from the byte buffer."
   [^java.nio.ByteBuffer buffer]
@@ -68,6 +74,15 @@
   [x]
   (let [data                        (byte-array 2)
         ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (.putShort buffer (ushort->short x))
+    data))
+
+(defn put-size
+  "Wrap a stat size in a byte-array."
+  [x]
+  (let [data                        (byte-array 4)
+        ^java.nio.ByteBuffer buffer (wrap-buffer data)]
+    (.putShort buffer (ushort->short (+ 2 x)))
     (.putShort buffer (ushort->short x))
     data))
 

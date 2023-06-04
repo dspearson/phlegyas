@@ -122,7 +122,7 @@
                     :Rremove  [:tag]
 
                     :Tstat    [:tag :fid]
-                    :Rstat    [:tag :size :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
+                    :Rstat    [:tag :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
 
                     :Twstat   [:tag :fid :size :type :dev :qid-type :qid-vers :qid-path :mode :atime :mtime :length :name :uid :gid :muid]
                     :Rwstat   [:tag]})
@@ -130,7 +130,7 @@
 (def type-size {:tag      2
                 :oldtag   2
                 :msize    4
-                :size     2
+                :size     4
                 :fid      4
                 :afid     4
                 :newfid   4
@@ -180,7 +180,7 @@
                     :atime    #'buffers/get-int
                     :mtime    #'buffers/get-int
                     :length   #'buffers/get-long
-                    :size     #'buffers/get-short})
+                    :size     #'buffers/get-size})
 
 (def put-operation {:version  #'buffers/put-string
                     :name     #'buffers/put-string
@@ -215,7 +215,7 @@
                     :length   #'buffers/put-long
                     :fsize    #'buffers/put-int
                     :ftype    #'buffers/put-byte
-                    :size     #'buffers/put-short})
+                    :size     #'buffers/put-size})
 
 ;; we iterate over the keys in the buffer-operator map, and resolve functions for reading them.
 (def reverse-frame-byte      (reverse-map frame-byte))

@@ -19,25 +19,29 @@
 (deftest new-filesystem
   (with-system
     (let [fs-name         (uuid!)
-          fs              (vfs/create-filesystem system fs-name)
+          _               (vfs/create-filesystem system fs-name)
           created-fs-name (:name (vfs/get-filesystem system fs-name))]
       (is (uuid= fs-name created-fs-name)))))
 
 (deftest filesystem-with-nested-directory
   (with-system
-    (let [fs-name            (uuid!)
-          fs                 (vfs/create-filesystem system fs-name)
-          root-directory     (vfs/get-node system {:qid-path (:rnode fs)})
-          sub-directory-1    (vfs/add-directory system root-directory "sub-directory-1")
-          sub-directory-2    (vfs/add-directory system root-directory "sub-directory-2")
-          fetched-directory  (vfs/get-node system sub-directory-1)
-          directory-contents (vfs/get-directory-contents system root-directory)
-          _                  (println (first directory-contents))
-          dir                (vfs/directory-reader system root-directory 8192)]
+    (let [fs-name           (uuid!)
+          fs                (vfs/create-filesystem system fs-name)
+          root-directory    (vfs/get-node system {:qid-path (:rnode fs)})
+          sub-directory-1   (vfs/add-directory system root-directory "sub-directory-1")
+          _                 (vfs/add-directory system sub-directory-1 "sub-directory-2")
+          fetched-directory (vfs/get-node system sub-directory-1)
+          dir-contents      (vfs/get-directory-contents system root-directory)
+          subdir-contents   (vfs/get-directory-contents system root-directory)
+          _                 (println (first dir-contents))
+          dir               (vfs/directory-reader system root-directory 8192)]
       (println "Dir:" dir)
       (testing "Directory is successfully inserted and retrievable"
-        (is (uuid= (:path sub-directory-1)
-                   (:path fetched-directory))))
+        (is (uuid= (:qid-path sub-directory-1)
+                   (:qid-path fetched-directory))))
 
       (testing "Directory contents are enumerable"
-        (is (= 2 (count directory-contents)))))))
+        (is (= 1 (count dir-contents))))
+
+      (testing "Directories can be nested"
+        (is (= 1 (count subdir-contents)))))))

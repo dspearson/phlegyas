@@ -381,15 +381,16 @@
   case, a fid is not changed. Walks are only successful if the entire path can
   be walked."
   [fs path wnames]
-  (loop [candidates  wnames
-         search-path path
-         paths       []]
-    (let [candidate      (first candidates)
-          candidate-path (when candidate (wname->path fs search-path candidate))]
-      (cond
-        (nil? candidate)      paths
-        (nil? candidate-path) paths
-        :else                 (recur (rest candidates) candidate-path (conj paths candidate-path))))))
+  (let [paths (reduce (fn [acc wname]
+                        (let [candidate-path (wname->path fs (last acc) wname)]
+                          (if (nil? candidate-path)
+                            (reduced acc)
+                            (conj acc candidate-path))))
+                      [path]
+                      wnames)]
+    (if (= (count paths) (inc (count wnames)))
+      paths
+      (vec (butlast paths)))))
 
 (defn stat->role
   "Given a stat, and a user, find what role we have on it."

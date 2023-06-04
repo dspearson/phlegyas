@@ -213,7 +213,7 @@
                                  (add-mapping frame-newfid fs-name path)))
              :reply  {:nwqids []}})
     (let [wname-paths (walk-path fs path frame-wnames)
-          qids        (for [p wname-paths] (stat->qid (path->stat fs p)))]
+          qids        (map #(stat->qid (path->stat fs %)) wname-paths)]
       (if (< (count wname-paths) (count frame-wnames))
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x
@@ -527,7 +527,7 @@
   (state! {}))
 
 ;; this looks up frame types, and resolves functions for handling them in the current namespace.
-(def state-handlers ((fn [] (into {} (for [[k v] frame-byte] [k (-> k name symbol resolve)])))))
+(def state-handlers ((fn [] (into {} (map (fn [[k _]] [k (-> k name symbol resolve)]) frame-byte)))))
 
 (defn state-handler
   "An example state handler. Takes in a `frame`, the `state` atom, and an outport.
