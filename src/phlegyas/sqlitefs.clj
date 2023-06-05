@@ -1,9 +1,9 @@
 (ns phlegyas.sqlitefs
   (:require [phlegyas.db :as db]
-            [clojure.set :refer [rename-keys]]
-            [phlegyas.util :refer [uuid! epoch! octal->int pack sizeof-string]]
+            [clojure.set :refer [rename-keys subset?]]
+            [phlegyas.util :refer [uuid! epoch! octal->int pack sizeof-string keywordize]]
             [phlegyas.system :refer [system]]
-            [phlegyas.types :refer [qt-mode frame-layouts put-operation]]
+            [phlegyas.types :refer [qt-mode frame-layouts put-operation role-access reverse-qt-mode]]
             [taoensso.timbre :as timbre
              :refer [info debug error]]
             [next.jdbc :as jdbc]))
@@ -136,3 +136,56 @@
   [offset block-size]
   {:block-index       (quot offset block-size)
    :position-in-block (mod offset block-size)})
+
+(defn walk-path
+  "Given a filesystem, a path, and a vector `wnames`, step through the vector
+  attempting to resolve the path of each. i.e. if we are in the root, and want
+  to go to /a/b/c, wnames would be [\"a\", \"b\", \"c\"]. If we do not find a
+  match for a wname, we return a list of all paths that we _did_ find. In this
+  case, a fid is not changed. Walks are only successful if the entire path can
+  be walked."
+  [path wnames]
+  (let [paths (reduce (fn [acc wname]
+                        (let [candidate-path (db/get-child (:phlegyas/database @system) {:qid-path path :name wname})]
+                          (if (nil? candidate-path)
+                            (reduced acc)
+                            (conj acc candidate-path))))
+                      [path]
+                      wnames)]
+    (if (= (count paths) (inc (count wnames)))
+      paths
+      (vec (butlast paths)))))
+
+(defn fid->role
+  "Given a fid and a connection, return the role associated with it."
+  [fid {:keys [mapping role]}]
+  (-> fid
+      keywordize
+      mapping
+      role))
+
+(defn role-resolve
+  "Given a stat and a role, find what role we have on the stat."
+  [stat role]
+  (cond
+    (= (:uid stat) (:uid role)) :owner
+    (= (:gid stat) (:gid role)) :group
+    :else                       :others))
+
+(defn allowed-op?
+  [permissions operation]
+  (let [access-level (operation role-access)]
+    (subset? access-level permissions)))
+
+(defn permission-check
+  "Given a stat, a role, and an operation we want to perform, see
+  if we are allowed to perform it."
+  [stat rolemap operation]
+  (let [role  (role-resolve stat rolemap)
+        perms (role (:permissions stat))]
+    (allowed-op? perms operation)))
+
+(defn stat-type
+  "Get the type of a stat."
+  [stat]
+  (-> stat :qid-type keywordize reverse-qt-mode))

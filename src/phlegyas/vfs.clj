@@ -336,7 +336,7 @@
 (defn add-fs
   "Add the given filesystem to the connection. Used during attach."
   [state fs]
-  (assoc-in state [:fs-map (:id fs)] fs))
+  (assoc-in state [:fs-map (keyword (:name fs))] fs))
 
 (defn add-mapping
   "Add a new fid to the connection. Takes in the current state, new fid, filesystem id, and path of the fid."

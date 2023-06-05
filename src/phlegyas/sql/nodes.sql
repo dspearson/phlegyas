@@ -60,3 +60,13 @@ select * from nodes where path = :qid-path;
 -- :result :raw
 -- :doc Get children nodes by uuid
 select * from nodes where parent = :qid-path and path != :qid-path;
+
+-- :name get-root-node :?
+-- :result :raw
+-- :doc Get root node of filesystem
+select n.* from nodes n join filesystems fs on fs.rnode = n.path;
+
+-- :name get-child :?
+-- :result :1
+-- :doc Get child node by name
+select * from nodes where parent = :qid-path and name = :name;

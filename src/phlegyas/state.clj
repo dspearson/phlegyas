@@ -1,34 +1,20 @@
 (ns phlegyas.state
   (:require
+   [taoensso.timbre :as timbre
+    :refer [info debug error]]
    [clojure.core.incubator :refer [dissoc-in]]
    [clojure.string :as string]
    [manifold.deferred :as d]
    [manifold.stream :as s]
+   [phlegyas.sqlitefs :as vfs :refer [get-node walk-path fid->role permission-check]]
+   [phlegyas.system :refer [system]]
+   [phlegyas.vfs :refer [add-fs add-fid add-mapping add-role]]
+   [phlegyas.db :as db]
    [phlegyas.types
     :refer [frame-byte max-message-size protocol-version reverse-frame-byte]]
    [phlegyas.util
-    :refer [conj-val defn-frame-binding disj-val keywordize sha-str]]
-   [phlegyas.vfs
-    :refer
-    [add-fid
-     add-fs
-     add-mapping
-     add-role
-     directory-reader
-     example-read-write-function-for-files
-     is-directory?
-     fetch-data
-     fid->role
-     fid->stat
-     next-available-path
-     path->qid
-     path->stat
-     permission-check
-     stat->qid
-     stat-type
-     synthetic-file
-     update-mapping
-     walk-path]]))
+    :refer [conj-val defn-frame-binding disj-val keywordize sha-str]])
+  (:import (java.util UUID)))
 
 ;; an example state machine
 
@@ -60,6 +46,7 @@
   `(let [state-update# (:update ~data)
          reply-typ#    ((keywordize (+ 1 ((:frame ~'frame) ~'frame-byte))) ~'reverse-frame-byte)
          frame-update# (assoc (:reply ~data) :frame reply-typ#)]
+     (debug "In state!")
      (if state-update#
        (swap! ~'state state-update#))
      (into ~'frame frame-update#)))
@@ -113,13 +100,15 @@
   the Rversion reply. The tag should be NOTAG (value (ushort)~0) for a
   version message."
   [frame connection]
-  (cond
-    (not (string/starts-with? frame-version protocol-version)) (state! {:reply {:version "unknown"}})
-    (<= frame-msize max-message-size)                          (state! {:update (fn [x] (assoc x :msize frame-msize))
-                                                                        :reply  {:version protocol-version}})
-    :else                                                      (state! {:update (fn [x] (assoc x :msize max-message-size))
-                                                                        :reply  {:version protocol-version
-                                                                                 :msize   max-message-size}})))
+  (do
+    (debug "In Tversion")
+     (cond
+      (not (string/starts-with? frame-version protocol-version)) (state! {:reply {:version "unknown"}})
+      (<= frame-msize max-message-size)                          (state! {:update (fn [x] (assoc x :msize frame-msize))
+                                                                          :reply  {:version protocol-version}})
+      :else                                                      (state! {:update (fn [x] (assoc x :msize max-message-size))
+                                                                          :reply  {:version protocol-version
+                                                                                   :msize   max-message-size}}))))
 
 ;; Tauth:
 ;; not currently implemented, i.e. no authentication is required.
@@ -152,15 +141,14 @@
   the file tree to access (aname). The afid argument specifies a fid previously
   established by an auth message."
   [frame connection]
-  (let [root-fs    ((:root-filesystem current-state))
-        root-fs-id (:id root-fs)
-        root-path  (:root-path root-fs)]
+  (let [root-fs    (vfs/get-filesystem current-state frame-aname)
+        root-path  (:rpath root-fs)]
     (state! {:update (fn [x] (-> x
                                  (add-fs root-fs)
                                  (add-fid frame-fid frame-tag)
-                                 (add-mapping frame-fid root-fs-id root-path)
-                                 (add-role root-fs-id frame-uname frame-uname)))
-             :reply  (path->qid root-fs root-path)})))
+                                 (add-mapping frame-fid frame-aname root-path)
+                                 (add-role frame-aname frame-uname frame-uname)))
+             :reply  (get-node system {:path root-path})})))
 
 ;; Tflush:
 ;; not currently implemented.
@@ -212,8 +200,8 @@
                                  (add-fid frame-newfid frame-tag)
                                  (add-mapping frame-newfid fs-name path)))
              :reply  {:nwqids []}})
-    (let [wname-paths (walk-path fs path frame-wnames)
-          qids        (map #(stat->qid (path->stat fs %)) wname-paths)]
+    (let [wname-paths (walk-path path frame-wnames)
+          qids (map #(select-keys % [:qid-type :qid-vers :qid-path]) wname-paths)]
       (if (< (count wname-paths) (count frame-wnames))
         (state! {:reply {:nwqids qids}})
         (state! {:update (fn [x] (-> x
@@ -235,7 +223,7 @@
   size[4] Ropen tag[2] qid[13] iounit[4]"
   [frame connection]
   (let [role (fid->role frame-fid current-state)
-        stat (path->stat fs path)]
+        stat (db/get-node (:phlegyas/database @system) path)]
     (if-not (permission-check stat role :oread)
       (error! "no read permission")
       (state! {:update (fn [x] (update-mapping x frame-fid {:offset 0}))
@@ -323,7 +311,7 @@
   previous read. In other words, seeking other than to the beginning is
   illegal in a directory."
   [frame connection]
-  (let [stat (path->stat fs (:path mapping))
+  (let [stat (db/get-node (:phlegyas/database @system) path)
         typ  (stat-type stat)]
     (case typ
 
@@ -527,7 +515,7 @@
   (state! {}))
 
 ;; this looks up frame types, and resolves functions for handling them in the current namespace.
-(def state-handlers ((fn [] (into {} (map (fn [[k _]] [k (-> k name symbol resolve)]) frame-byte)))))
+(def state-handlers ((fn [] (into {} (doall (map (fn [[k _]] [k (-> k name symbol resolve)]) frame-byte))))))
 
 (defn state-handler
   "An example state handler. Takes in a `frame`, the `state` atom, and an outport.
@@ -537,6 +525,7 @@
   executed asynchronously inside a future."
   [frame connection out]
   (conj-val (:in-flight-requests connection) (:tag frame))
+  (info "handling frame" frame)
   (let [reply (((:frame frame) state-handlers) frame connection)]
     (s/put! out reply)
     (disj-val (:in-flight-requests connection) (:tag frame))))
